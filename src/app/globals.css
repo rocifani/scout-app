@@ -1,10 +1,23 @@
-/* src/app/globals.css */
-html, body {
-  padding: 0;
-  margin: 0;
-  font-family: system-ui, Arial, sans-serif;
+@import "tailwindcss";
+
+/* Windmill-like helpers SIN @apply (Tailwind v4 friendly) */
+.form-input {
+  border-radius: 0.5rem;       /* rounded-lg */
+  border: 1px solid #d1d5db;   /* border-gray-300 */
+  background: #ffffff;         /* bg-white */
+  padding: 0.5rem 0.75rem;     /* py-2 px-3 */
 }
 
-* {
-  box-sizing: border-box;
+.dark .form-input {
+  border-color: #4b5563;       /* gray-600 */
+  background: #374151;         /* gray-700 */
+  color: #d1d5db;              /* gray-300 */
+}
+
+.shadow-outline-purple {
+  box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.35);
+}
+
+.shadow-outline-gray {
+  box-shadow: 0 0 0 3px rgba(156, 163, 175, 0.35);
 }

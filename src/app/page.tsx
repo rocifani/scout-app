@@ -1,70 +1,43 @@
-import Link from "next/link";
-import { createSupabaseServer } from "@/lib/supabase/server";
+import AppShell from "@/components/AppShell";
 
-export default async function HomePage() {
-  const supabase = await createSupabaseServer();
-
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return (
-      <main style={{ padding: 16 }}>
-        <p>No estás logueada.</p>
-        <Link href="/login">Ir a login</Link>
-      </main>
-    );
-  }
-
-  // Detectar rol preguntando si existe en educadores/padres por auth_user_id
-  const [{ data: edu }, { data: padre }] = await Promise.all([
-    supabase.from("educadores").select("id,nombre,apellido").eq("auth_user_id", user.id).maybeSingle(),
-    supabase.from("padres").select("id,nombre,apellido").eq("auth_user_id", user.id).maybeSingle(),
-  ]);
-
-  const role = edu ? "educador" : padre ? "padre" : "desconocido";
-
-  // Esto es la prueba de fuego: RLS decide qué filas volvés a ver.
-  const { data: protagonistas, error } = await supabase
-    .from("protagonistas")
-    .select("id,nombre,apellido,rama,activo,fecha_nacimiento")
-    .order("apellido", { ascending: true });
-
+export default function DashboardPage() {
   return (
-    <main style={{ padding: 16, maxWidth: 900, margin: "0 auto" }}>
-      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div>
-          <h1>Scout App</h1>
-          <p>
-            Logueada como: <b>{user.email}</b> — rol: <b>{role}</b>
-          </p>
-        </div>
-        <form action="/logout" method="post">
-          <button style={{ padding: 10 }}>Salir</button>
-        </form>
-      </header>
+    <AppShell>
+      <h2 className="my-6 text-2xl font-semibold text-gray-700 dark:text-gray-200">
+        Inicio
+      </h2>
 
-      <h2 style={{ marginTop: 24 }}>Protagonistas</h2>
-
-      {error && (
-        <pre style={{ background: "#fee", padding: 12, overflowX: "auto" }}>
-          {error.message}
-        </pre>
-      )}
-
-      <div style={{ display: "grid", gap: 12 }}>
-        {(protagonistas ?? []).map((p) => (
-          <div key={p.id} style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
-            <b>{p.apellido}, {p.nombre}</b>
-            <div>Rama: {String(p.rama)}</div>
-            <div>Activo: {p.activo ? "Sí" : "No"}</div>
-            <div>Fecha nac: {p.fecha_nacimiento}</div>
-          </div>
-        ))}
+      {/* Bienvenida */}
+      <div className="mb-8 p-4 rounded-lg shadow-md bg-[#FCDB52] text-gray-900">
+        <p className="text-sm font-semibold">
+          ¡Bienvenid@ a la app del grupo scout!
+        </p>
+        <p className="text-sm mt-1 text-gray-800">
+          Desde el menú vas a poder acceder a la información y gestiones según tu rol.
+        </p>
       </div>
 
-      <p style={{ marginTop: 16, opacity: 0.7 }}>
-        Nota: si estás como padre, deberías ver solo tus protagonistas (si RLS está bien).
-      </p>
-    </main>
+      {/* Placeholder cards (después lo conectamos a datos reales) */}
+      <div className="grid gap-6 mb-8 md:grid-cols-2 xl:grid-cols-4">
+        <Card title="Próximo paso" value="Crear pantallas" />
+        <Card title="Estado" value="Login OK" />
+        <Card title="Rol" value="Menú dinámico" />
+        <Card title="Pendiente" value="ABMs" />
+      </div>
+    </AppShell>
+  );
+}
+
+function Card({ title, value }: { title: string; value: string }) {
+  return (
+    <div className="flex items-center p-4 bg-white rounded-lg shadow-xs dark:bg-gray-800">
+      <div className="p-3 mr-4 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200">
+        <span className="font-bold">•</span>
+      </div>
+      <div>
+        <p className="mb-2 text-sm font-medium text-gray-600 dark:text-gray-400">{title}</p>
+        <p className="text-lg font-semibold text-gray-700 dark:text-gray-200">{value}</p>
+      </div>
+    </div>
   );
 }

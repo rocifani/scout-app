@@ -1,0 +1,329 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { createSupabaseBrowser } from "@/lib/supabase/browser";
+
+type Role = "educador" | "padre";
+
+type NavItem = {
+  label: string;
+  href: string;
+  icon: React.ReactNode;
+};
+
+function IconHome() {
+  return (
+    <svg className="w-5 h-5" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2 7-7 7 7 2 2M5 10v10a1 1 0 001 1h3m10-11v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1" />
+    </svg>
+  );
+}
+
+function IconUsers() {
+  return (
+    <svg className="w-5 h-5" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 00-4-4h-1M9 20H2v-2a4 4 0 014-4h1m8-4a4 4 0 10-8 0 4 4 0 008 0zm6 4a3 3 0 10-6 0 3 3 0 006 0z" />
+    </svg>
+  );
+}
+
+function IconDoc() {
+  return (
+    <svg className="w-5 h-5" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6M9 8h6M7 4h10a2 2 0 012 2v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2z" />
+    </svg>
+  );
+}
+
+function IconMoney() {
+  return (
+    <svg className="w-5 h-5" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-2m2-6h-6m6 0a2 2 0 012 2v2a2 2 0 01-2 2h-6m6-6V9a2 2 0 00-2-2h-1" />
+    </svg>
+  );
+}
+
+function IconTent() {
+  return (
+    <svg className="w-5 h-5" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 20l9-16 9 16M6 20h12M10 20v-6h4v6" />
+    </svg>
+  );
+}
+
+function IconBook() {
+  return (
+    <svg className="w-5 h-5" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5S19.832 5.477 21 6.253v13C19.832 18.477 18.246 18 16.5 18s-3.332.477-4.5 1.253" />
+    </svg>
+  );
+}
+
+function IconLogout() {
+  return (
+    <svg className="w-5 h-5" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h6a2 2 0 012 2v1" />
+    </svg>
+  );
+}
+
+export default function AppShell({ children }: { children: React.ReactNode }) {
+  const supabase = createSupabaseBrowser();
+
+  const [sideOpen, setSideOpen] = useState(false);
+  const [role, setRole] = useState<Role | null>(null);
+  const [fullName, setFullName] = useState<string>("");
+
+  // Si querés dark mode luego: podemos guardar un flag en localStorage y aplicar class "dark" arriba.
+  const [dark, setDark] = useState(false);
+
+  useEffect(() => {
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        window.location.href = "/login";
+        return;
+      }
+
+      // 🔧 AJUSTÁ ESTO si tu tabla/campos son distintos:
+      // Supongo tabla: public.profiles con columnas: auth_user_id (uuid), role (text), full_name (text)
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("role, full_name")
+        .eq("auth_user_id", user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error(error);
+        setRole(null);
+        setFullName(user.email ?? "");
+        return;
+      }
+
+      setRole((data?.role as Role) ?? null);
+      setFullName(data?.full_name ?? (user.email ?? ""));
+    }
+
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const navItems: NavItem[] = useMemo(() => {
+    const common: NavItem[] = [
+      { label: "Inicio", href: "/", icon: <IconHome /> },
+    ];
+
+    if (role === "educador") {
+      return [
+        ...common,
+        { label: "Protagonistas", href: "/protagonistas", icon: <IconUsers /> },
+        { label: "Administrar cuotas", href: "/admin/cuotas", icon: <IconMoney /> },
+        { label: "Administrar autorizaciones", href: "/admin/autorizaciones", icon: <IconDoc /> },
+        { label: "Administrar ventas", href: "/admin/ventas", icon: <IconMoney /> },
+        { label: "Ventas de protagonistas", href: "/ventas/protagonistas", icon: <IconMoney /> },
+        { label: "Educadores", href: "/educadores", icon: <IconUsers /> },
+        { label: "Inventario de carpas", href: "/carpas", icon: <IconTent /> },
+        { label: "Cursos", href: "/cursos", icon: <IconBook /> },
+        { label: "Cursos de educadores", href: "/cursos-educadores", icon: <IconBook /> },
+      ];
+    }
+
+    if (role === "padre") {
+      return [
+        ...common,
+        { label: "Perfil de mi hijo/a", href: "/mi-hijo", icon: <IconUsers /> },
+        { label: "Detalle de cuotas", href: "/mis-cuotas", icon: <IconMoney /> },
+        { label: "Detalle de autorizaciones", href: "/mis-autorizaciones", icon: <IconDoc /> },
+        { label: "Mis ventas", href: "/mis-ventas", icon: <IconMoney /> },
+      ];
+    }
+
+    // Si todavía no resolvió rol (cargando), mostramos solo inicio.
+    return common;
+  }, [role]);
+
+  const appName = "Scout App";
+
+  return (
+    <div className={dark ? "dark" : ""}>
+      <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+        {/* Backdrop móvil */}
+        {sideOpen && (
+          <div
+            onClick={() => setSideOpen(false)}
+            className="fixed inset-0 z-10 bg-black/50 md:hidden"
+          />
+        )}
+
+        {/* Sidebar */}
+        <aside
+          className={[
+            "z-20 w-64 overflow-y-auto bg-white dark:bg-gray-800 shrink-0",
+            "hidden md:block",
+          ].join(" ")}
+        >
+          <Sidebar appName={appName} navItems={navItems} />
+        </aside>
+
+        {/* Sidebar móvil */}
+        <aside
+          className={[
+            "fixed inset-y-0 left-0 z-20 w-64 mt-16 overflow-y-auto bg-white dark:bg-gray-800 md:hidden",
+            "transition-transform duration-150",
+            sideOpen ? "translate-x-0" : "-translate-x-72",
+          ].join(" ")}
+        >
+          <Sidebar appName={appName} navItems={navItems} />
+        </aside>
+
+        {/* Main */}
+        <div className="flex flex-col flex-1 w-full min-w-0">
+          {/* Header */}
+          <header className="z-10 py-4 bg-white shadow-md dark:bg-gray-800">
+            <div className="container flex items-center justify-between h-full px-6 mx-auto text-gray-700 dark:text-gray-200">
+              {/* Hamburger (móvil) */}
+              <button
+                className="p-1 mr-5 -ml-1 rounded-md md:hidden focus:outline-none focus:ring-2 focus:ring-[#FCDB52]/40"
+                onClick={() => setSideOpen((v) => !v)}
+                aria-label="Menu"
+              >
+                <svg className="w-6 h-6" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20">
+                  <path
+                    fillRule="evenodd"
+                    d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
+
+              {/*  placeholder solo para agregar espacio */}
+              <div className="flex justify-center flex-1 lg:mr-32">
+                <div className="relative w-full max-w-xl mr-6">
+                  <div className="absolute inset-y-0 flex items-center pl-2 text-gray-500">
+
+                  </div>
+                </div>
+              </div>
+
+              {/* Acciones derecha */}
+              <ul className="flex items-center shrink-0 space-x-4">
+                {/* Dark mode (opcional) */}
+                <li className="flex">
+                  <button
+                    className="rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#FCDB52]/40"
+                    onClick={() => setDark((v) => !v)}
+                    aria-label="Toggle color mode"
+                    title="Cambiar modo"
+                  >
+                    {dark ? (
+                      <svg className="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20">
+                        <path
+                          fillRule="evenodd"
+                          d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                      </svg>
+                    )}
+                  </button>
+                </li>
+
+                {/* “Perfil” simple + logout */}
+                <li className="flex items-center gap-3">
+                  <div className="hidden sm:flex flex-col text-right">
+                    <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                      {fullName || "Cargando..."}
+                    </span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      {role ? `Rol: ${role}` : "Resolviendo rol..."}
+                    </span>
+                  </div>
+
+                  <Link
+                    href="/logout"
+                    className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md border border-gray-200
+                               dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500
+                               focus:outline-none focus:ring-2 focus:ring-[#FCDB52]/30"
+                    title="Salir"
+                  >
+                    <IconLogout />
+                    <span className="hidden sm:inline">Salir</span>
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          </header>
+
+          {/* Content */}
+          <main className="h-full overflow-y-auto">
+            <div className="container px-6 mx-auto">
+              {children}
+            </div>
+          </main>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Sidebar({ appName, navItems }: { appName: string; navItems: NavItem[] }) {
+  const [active, setActive] = useState<string>("/");
+
+  useEffect(() => {
+    setActive(window.location.pathname || "/");
+  }, []);
+
+  return (
+    <div className="py-4 text-gray-500 dark:text-gray-400">
+      <Link className="ml-6 text-lg font-bold text-gray-800 dark:text-gray-200" href="/">
+        {appName}
+      </Link>
+
+      <ul className="mt-6">
+        {navItems.map((item) => {
+          const isActive = item.href === active;
+
+          return (
+            <li key={item.href} className="relative px-6 py-3">
+              {isActive && (
+                <span
+                  className="absolute inset-y-0 left-0 w-1 bg-[#FCDB52] rounded-tr-lg rounded-br-lg"
+                  aria-hidden="true"
+                />
+              )}
+
+              <Link
+                href={item.href}
+                className={[
+                  "inline-flex items-center w-full text-sm font-semibold transition-colors duration-150",
+                  "hover:text-gray-800 dark:hover:text-gray-200",
+                  isActive ? "text-gray-800 dark:text-gray-100" : "",
+                ].join(" ")}
+              >
+                {item.icon}
+                <span className="ml-4">{item.label}</span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+
+      <div className="px-6 my-6">
+        <Link
+          href="/"
+          className="flex items-center justify-between w-full px-4 py-2 text-sm font-medium leading-5
+                     text-gray-900 transition-colors duration-150 bg-[#FCDB52] border border-transparent rounded-lg
+                     hover:bg-[#F3D146] active:bg-[#E9C83D]
+                     focus:outline-none focus:ring-2 focus:ring-[#FCDB52]/40"
+        >
+          Ir al inicio
+          <span className="ml-2" aria-hidden="true">→</span>
+        </Link>
+      </div>
+    </div>
+  );
+}
