@@ -41,3 +41,42 @@ export async function setProtagonistaActivoAction(formData: FormData) {
     )}`
   );
 }
+
+export async function updatePadreYRelacionAction(formData: FormData) {
+  const supabase = await createSupabaseServer();
+
+  const idProtagonista = Number(formData.get("id_protagonista"));
+  const idPadre = Number(formData.get("id_padre"));
+  const idPP = Number(formData.get("id_padre_protagonista"));
+
+  if (!idProtagonista || !idPadre || !idPP) throw new Error("IDs inválidos.");
+
+  const padrePayload = {
+    nombre: String(formData.get("nombre") ?? "").trim(),
+    apellido: String(formData.get("apellido") ?? "").trim(),
+    telefono: Number(formData.get("telefono") ?? 0) || null,
+    email: String(formData.get("email") ?? "").trim() || null,
+    dni: Number(formData.get("dni") ?? 0),
+  };
+
+  const relacionPayload = {
+    relacion: String(formData.get("relacion") ?? "").trim() || null,
+  };
+
+  // 1) update padre
+  const { error: e1 } = await supabase.from("padres").update(padrePayload).eq("id", idPadre);
+  if (e1) throw new Error(e1.message);
+
+  // 2) update relación (por id del registro en padres_protagonistas)
+  const { error: e2 } = await supabase
+    .from("padres_protagonistas")
+    .update(relacionPayload)
+    .eq("id", idPP);
+
+  if (e2) throw new Error(e2.message);
+
+  redirect(
+  `/protagonistas?toast=${encodeURIComponent("Padre actualizado")}`
+);
+
+}

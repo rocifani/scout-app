@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createSupabaseServer } from "@/lib/supabase/server";
+import ProtagonistasFilters from "@/components/ProtagonistasFilters";
 
 type Protagonista = {
   id: number;
@@ -12,6 +13,8 @@ type Protagonista = {
   domicilio: string;
   dni: number;
 };
+
+const RAMAS = ["Lobatos y Lobeznas", "Scout", "Caminantes", "Rovers"] as const;
 
 function formatARDate(dateString: string) {
   const [year, month, day] = dateString.split("-");
@@ -34,17 +37,44 @@ function EstadoPill({ activo }: { activo: boolean }) {
 export default async function ProtagonistasPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ toast?: string }>;
+  searchParams?: Promise<{
+    toast?: string;
+    q?: string;
+    rama?: string;
+    activo?: string; // "true" | "false" | "" (o undefined)
+  }>;
 }) {
   const sp = (await searchParams) ?? {};
+
   const toast = sp.toast ? decodeURIComponent(sp.toast) : null;
+  const q = (sp.q ?? "").trim();
+  const rama = (sp.rama ?? "").trim();
+  const activo = (sp.activo ?? "").trim(); // "", "true", "false"
 
   const supabase = await createSupabaseServer();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("protagonistas")
-    .select("id, created_at, nombre, apellido, rama, fecha_nacimiento, activo, domicilio, dni")
-    .order("created_at", { ascending: false });
+    .select("id, created_at, nombre, apellido, rama, fecha_nacimiento, activo, domicilio, dni");
+
+  // 🔎 búsqueda por nombre o apellido (case-insensitive)
+  if (q) {
+    const safe = q.replace(/%/g, "\\%").replace(/_/g, "\\_");
+    query = query.or(`nombre.ilike.%${safe}%,apellido.ilike.%${safe}%`);
+  }
+
+  // 🏕 filtro por rama
+  if (rama) {
+    query = query.eq("rama", rama);
+  }
+
+  // ✅ filtro por activo (no default)
+  if (activo === "true") query = query.eq("activo", true);
+  if (activo === "false") query = query.eq("activo", false);
+
+  const { data, error } = await query
+    .order("apellido", { ascending: true })
+    .order("nombre", { ascending: true });
 
   if (error) return <div className="p-6 text-red-600">Error: {error.message}</div>;
 
@@ -53,17 +83,14 @@ export default async function ProtagonistasPage({
   return (
     <main className="min-h-screen">
       <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
-
         {toast && (
           <div className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-green-800">
             {toast}
           </div>
         )}
 
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-semibold text-gray-700 dark:text-gray-200">
-            Protagonistas
-          </h1>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-2xl font-semibold text-gray-700 dark:text-gray-200">Protagonistas</h1>
 
           <Link
             href="/protagonistas/nuevo"
@@ -75,6 +102,14 @@ export default async function ProtagonistasPage({
             Nuevo <span aria-hidden>+</span>
           </Link>
         </div>
+
+        {/* ✅ Filtros con auto-búsqueda */}
+        <ProtagonistasFilters
+          ramas={[...RAMAS]}
+          initialQ={q}
+          initialRama={rama}
+          initialActivo={activo}
+        />
 
         <div className="w-full overflow-hidden rounded-lg shadow">
           <div className="w-full overflow-x-auto">
@@ -140,7 +175,7 @@ export default async function ProtagonistasPage({
                 {rows.length === 0 && (
                   <tr>
                     <td colSpan={6} className="px-4 py-6 text-sm text-gray-500 dark:text-gray-400">
-                      No hay protagonistas cargados.
+                      No hay protagonistas para esos filtros.
                     </td>
                   </tr>
                 )}

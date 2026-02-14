@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createSupabaseServer } from "@/lib/supabase/server";
-import { setProtagonistaActivoAction, updateProtagonistaAction } from "./actions";
+import { setProtagonistaActivoAction, updateProtagonistaAction, updatePadreYRelacionAction } from "./actions";
 
 const RAMAS = ["Lobatos y Lobeznas", "Scout", "Caminantes", "Rovers"] as const;
 
@@ -97,9 +97,6 @@ export default async function EditarProtagonistaPage({
             <h1 className="text-2xl font-semibold text-gray-800 dark:text-gray-100 mt-2">
               Editar protagonista
             </h1>
-            <p className="text-sm text-gray-600 dark:text-gray-300">
-              {p.apellido}, {p.nombre} · Nac: {formatARDate(p.fecha_nacimiento)}
-            </p>
           </div>
 
           <span
@@ -169,9 +166,11 @@ export default async function EditarProtagonistaPage({
           </form>
         </div>
 
-        {/* Padres */}
+       {/* Padres */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-5 mb-6">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">Padres / Tutores</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Padres / Tutores</h2>
+          </div>
 
           {padresOrdenados.length === 0 ? (
             <p className="text-sm text-gray-600 dark:text-gray-300">
@@ -186,13 +185,92 @@ export default async function EditarProtagonistaPage({
                       <p className="font-semibold">
                         {pp.padres!.apellido}, {pp.padres!.nombre}
                       </p>
-                      <p className="text-sm text-gray-600">Relación: {pp.relacion ?? "—"}</p>
-                      <p className="text-sm text-gray-600">DNI: {pp.padres!.dni}</p>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm text-gray-600">Tel: {pp.padres!.telefono}</p>
-                      <p className="text-sm text-gray-600">Email: {pp.padres!.email}</p>
-                    </div>
+
+                    {/* Form editar padre + relación */}
+                    <form action={updatePadreYRelacionAction} className="w-full max-w-md">
+                      <input type="hidden" name="id_protagonista" value={p.id} />
+                      <input type="hidden" name="id_padre" value={pp.padres!.id} />
+                      <input type="hidden" name="id_padre_protagonista" value={pp.id} />
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-xs text-gray-600 mb-1">Nombre</label>
+                          <input
+                            name="nombre"
+                            defaultValue={pp.padres!.nombre}
+                            className="w-full rounded-lg border px-3 py-2"
+                            required
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs text-gray-600 mb-1">Apellido</label>
+                          <input
+                            name="apellido"
+                            defaultValue={pp.padres!.apellido}
+                            className="w-full rounded-lg border px-3 py-2"
+                            required
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs text-gray-600 mb-1">Relación</label>
+                        <select
+                          name="relacion"
+                          defaultValue={pp.relacion ?? ""}
+                          className="w-full rounded-lg border px-3 py-2 bg-white"
+                          required
+                        >
+                          <option value="">Seleccionar</option>
+                          <option value="Mamá">Mamá</option>
+                          <option value="Papá">Papá</option>
+                          <option value="Tutor">Tutor</option>
+                        </select>
+
+                        </div>
+
+                        <div>
+                          <label className="block text-xs text-gray-600 mb-1">DNI</label>
+                          <input
+                            type="number"
+                            name="dni"
+                            defaultValue={pp.padres!.dni}
+                            className="w-full rounded-lg border px-3 py-2"
+                            required
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs text-gray-600 mb-1">Teléfono</label>
+                          <input
+                            type="number"
+                            name="telefono"
+                            defaultValue={pp.padres!.telefono}
+                            className="w-full rounded-lg border px-3 py-2"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs text-gray-600 mb-1">Email</label>
+                          <input
+                            type="email"
+                            name="email"
+                            defaultValue={pp.padres!.email}
+                            className="w-full rounded-lg border px-3 py-2"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end mt-2">
+                        <button
+                          type="submit"
+                          className="px-3 py-2 rounded-lg bg-[#FCDB52] text-gray-900 font-semibold text-sm"
+                        >
+                          Guardar padre
+                        </button>
+                      </div>
+                    </form>
                   </div>
                 </div>
               ))}
