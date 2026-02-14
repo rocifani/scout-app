@@ -233,16 +233,18 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     </span>
                   </div>
 
-                  <Link
-                    href="/logout"
-                    className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md border border-gray-200
-                               dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500
-                               focus:outline-none focus:ring-2 focus:ring-[#FCDB52]/30"
-                    title="Salir"
-                  >
-                    <IconLogout />
-                    <span className="hidden sm:inline">Salir</span>
-                  </Link>
+                  <form action="/logout" method="post">
+                      <button
+                        type="submit"
+                        className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md border border-gray-200
+                                  dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500
+                                  focus:outline-none focus:ring-2 focus:ring-[#FCDB52]/30"
+                        title="Salir"
+                      >
+                        <IconLogout />
+                        <span className="hidden sm:inline">Salir</span>
+                      </button>
+                    </form>
                 </li>
               </ul>
             </div>
@@ -299,18 +301,7 @@ function Sidebar({ appName, navItems }: { appName: string; navItems: NavItem[] }
         })}
       </ul>
 
-      <div className="px-6 my-6">
-        <Link
-          href="/"
-          className="flex items-center justify-between w-full px-4 py-2 text-sm font-medium leading-5
-                     text-gray-900 transition-colors duration-150 bg-[#FCDB52] border border-transparent rounded-lg
-                     hover:bg-[#F3D146] active:bg-[#E9C83D]
-                     focus:outline-none focus:ring-2 focus:ring-[#FCDB52]/40"
-        >
-          Ir al inicio
-          <span className="ml-2" aria-hidden="true">→</span>
-        </Link>
-      </div>
+      
     </div>
   );
 

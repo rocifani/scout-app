@@ -14,7 +14,6 @@ type Protagonista = {
 };
 
 function formatARDate(dateString: string) {
-  // Evita bug UTC de JS con "YYYY-MM-DD"
   const [year, month, day] = dateString.split("-");
   return new Date(parseInt(year), parseInt(month) - 1, parseInt(day)).toLocaleDateString("es-AR");
 }
@@ -32,7 +31,14 @@ function EstadoPill({ activo }: { activo: boolean }) {
   );
 }
 
-export default async function ProtagonistasPage() {
+export default async function ProtagonistasPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ toast?: string }>;
+}) {
+  const sp = (await searchParams) ?? {};
+  const toast = sp.toast ? decodeURIComponent(sp.toast) : null;
+
   const supabase = await createSupabaseServer();
 
   const { data, error } = await supabase
@@ -47,6 +53,13 @@ export default async function ProtagonistasPage() {
   return (
     <main className="min-h-screen">
       <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
+
+        {toast && (
+          <div className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-green-800">
+            {toast}
+          </div>
+        )}
+
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-semibold text-gray-700 dark:text-gray-200">
             Protagonistas
@@ -73,12 +86,9 @@ export default async function ProtagonistasPage() {
                 >
                   <th className="px-4 py-3">Nombre</th>
                   <th className="px-4 py-3">Rama</th>
-
-                  {/* Oculto en mobile */}
                   <th className="px-4 py-3 hidden md:table-cell">DNI</th>
                   <th className="px-4 py-3 hidden lg:table-cell">Dirección</th>
                   <th className="px-4 py-3 hidden md:table-cell">Estado</th>
-
                   <th className="px-4 py-3">Acciones</th>
                 </tr>
               </thead>
@@ -88,7 +98,6 @@ export default async function ProtagonistasPage() {
                   <tr key={p.id} className="text-gray-700 dark:text-gray-300">
                     <td className="px-4 py-3">
                       <div className="text-sm">
-                        {/* Click en el nombre -> editar */}
                         <Link
                           href={`/protagonistas/${p.id}/editar`}
                           className="font-semibold hover:underline focus:outline-none focus:underline"
@@ -100,7 +109,6 @@ export default async function ProtagonistasPage() {
                           Fecha nacimiento: {formatARDate(p.fecha_nacimiento)}
                         </p>
 
-                        {/* En mobile muestro el estado acá para ahorrar columnas */}
                         <div className="mt-2 md:hidden">
                           <EstadoPill activo={p.activo} />
                         </div>
@@ -108,7 +116,6 @@ export default async function ProtagonistasPage() {
                     </td>
 
                     <td className="px-4 py-3 text-sm">{p.rama}</td>
-
                     <td className="px-4 py-3 text-sm hidden md:table-cell">{p.dni}</td>
                     <td className="px-4 py-3 text-sm hidden lg:table-cell">{p.domicilio}</td>
 
