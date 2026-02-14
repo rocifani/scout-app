@@ -1,8 +1,8 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "Scout App",
-  description: "App del grupo scout",
+  title: "GS Pablo Apóstol App",
+  description: "App del Grupo Scout Pablo Apóstol",
 };
 
 export default function RootLayout({

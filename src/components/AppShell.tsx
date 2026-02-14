@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase/browser";
+import { usePathname } from "next/navigation";
+
 
 type Role = "educador" | "padre";
 
@@ -86,28 +88,42 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // 🔧 AJUSTÁ ESTO si tu tabla/campos son distintos:
-      // Supongo tabla: public.profiles con columnas: auth_user_id (uuid), role (text), full_name (text)
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("role, full_name")
+      const { data: edu, error: eduErr } = await supabase
+        .from("educadores")
+        .select("nombre, apellido, email")
         .eq("auth_user_id", user.id)
         .maybeSingle();
 
-      if (error) {
-        console.error(error);
-        setRole(null);
-        setFullName(user.email ?? "");
+      if (eduErr) console.error("educadores:", eduErr);
+
+      if (edu) {
+        setRole("educador");
+        setFullName(`${edu.nombre} ${edu.apellido}`.trim() || edu.email || user.email || "");
         return;
       }
 
-      setRole((data?.role as Role) ?? null);
-      setFullName(data?.full_name ?? (user.email ?? ""));
+      // 2) Si no es educador, intento: padre
+      const { data: padre, error: padreErr } = await supabase
+        .from("padres")
+        .select("nombre, apellido, email")
+        .eq("auth_user_id", user.id)
+        .maybeSingle();
+
+      if (padreErr) console.error("padres:", padreErr);
+
+      if (padre) {
+        setRole("padre");
+        setFullName(`${padre.nombre} ${padre.apellido}`.trim() || padre.email || user.email || "");
+        return;
+      }
+
+      // 3) Si no está en ninguna tabla:
+      setRole(null);
+      setFullName(user.email ?? "");
     }
 
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [supabase]);
 
   const navItems: NavItem[] = useMemo(() => {
     const common: NavItem[] = [
@@ -143,7 +159,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     return common;
   }, [role]);
 
-  const appName = "Scout App";
+  const appName = "GS Pablo Apóstol App";
 
   return (
     <div className={dark ? "dark" : ""}>
@@ -208,38 +224,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
               {/* Acciones derecha */}
               <ul className="flex items-center shrink-0 space-x-4">
-                {/* Dark mode (opcional) */}
-                <li className="flex">
-                  <button
-                    className="rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#FCDB52]/40"
-                    onClick={() => setDark((v) => !v)}
-                    aria-label="Toggle color mode"
-                    title="Cambiar modo"
-                  >
-                    {dark ? (
-                      <svg className="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20">
-                        <path
-                          fillRule="evenodd"
-                          d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    ) : (
-                      <svg className="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
-                      </svg>
-                    )}
-                  </button>
-                </li>
 
                 {/* “Perfil” simple + logout */}
                 <li className="flex items-center gap-3">
                   <div className="hidden sm:flex flex-col text-right">
                     <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">
                       {fullName || "Cargando..."}
-                    </span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {role ? `Rol: ${role}` : "Resolviendo rol..."}
                     </span>
                   </div>
 
@@ -271,11 +261,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 }
 
 function Sidebar({ appName, navItems }: { appName: string; navItems: NavItem[] }) {
-  const [active, setActive] = useState<string>("/");
-
-  useEffect(() => {
-    setActive(window.location.pathname || "/");
-  }, []);
+  const pathname = usePathname();
+  const active = pathname || "/";
 
   return (
     <div className="py-4 text-gray-500 dark:text-gray-400">
@@ -285,7 +272,7 @@ function Sidebar({ appName, navItems }: { appName: string; navItems: NavItem[] }
 
       <ul className="mt-6">
         {navItems.map((item) => {
-          const isActive = item.href === active;
+          const isActive = active === item.href;
 
           return (
             <li key={item.href} className="relative px-6 py-3">
@@ -301,7 +288,7 @@ function Sidebar({ appName, navItems }: { appName: string; navItems: NavItem[] }
                 className={[
                   "inline-flex items-center w-full text-sm font-semibold transition-colors duration-150",
                   "hover:text-gray-800 dark:hover:text-gray-200",
-                  isActive ? "text-gray-800 dark:text-gray-100" : "",
+                  isActive ? "text-gray-900 dark:text-gray-100" : "",
                 ].join(" ")}
               >
                 {item.icon}
@@ -326,4 +313,5 @@ function Sidebar({ appName, navItems }: { appName: string; navItems: NavItem[] }
       </div>
     </div>
   );
+
 }
