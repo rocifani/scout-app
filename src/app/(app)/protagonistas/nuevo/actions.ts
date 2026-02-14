@@ -179,5 +179,15 @@ export async function createProtagonistaConPadres(formData: FormData) {
     if (relErr) throw new Error(relErr.message);
   }
 
+    // 3) Generar cuotas del año actual (Abr-Dic + afiliación) para este protagonista
+  const anio = new Date().getFullYear();
+
+  const { error: cuotasErr } = await supabaseAdmin.rpc("generar_cuotas_para_protagonista", {
+    p_protagonista_id: idProtagonista,
+    p_anio: anio,
+  });
+
+  if (cuotasErr) throw new Error(cuotasErr.message);
+
   redirect("/protagonistas");
 }

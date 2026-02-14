@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createSupabaseServer } from "@/lib/supabase/server";
-import ProtagonistasFilters from "@/components/ProtagonistasFilters";
+import TableFilters from "@/components/TableFilters";
 
 type Protagonista = {
   id: number;
@@ -104,7 +104,7 @@ export default async function ProtagonistasPage({
         </div>
 
         {/* ✅ Filtros con auto-búsqueda */}
-        <ProtagonistasFilters
+        <TableFilters
           ramas={[...RAMAS]}
           initialQ={q}
           initialRama={rama}

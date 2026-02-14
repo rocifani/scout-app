@@ -1,17 +1,25 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 type Props = {
   ramas: string[];
-  initialQ: string;
-  initialRama: string;
-  initialActivo: string; // "", "true", "false"
+  initialQ?: string;
+  initialRama?: string;
+  initialActivo?: string; // "", "true", "false"
+  placeholder?: string;
+  includeToastParam?: boolean; // por defecto false (como ya hacés)
 };
 
-export default function ProtagonistasFilters({ ramas, initialQ, initialRama, initialActivo }: Props) {
+export default function TableFilters({
+  ramas,
+  initialQ = "",
+  initialRama = "",
+  initialActivo = "",
+  placeholder = "Buscar por nombre o apellido...",
+  includeToastParam = false,
+}: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const sp = useSearchParams();
@@ -22,13 +30,19 @@ export default function ProtagonistasFilters({ ramas, initialQ, initialRama, ini
 
   const hasFilters = useMemo(() => !!q || !!rama || !!activo, [q, rama, activo]);
 
+  // ✅ sincroniza estado con URL (back/forward o navegación)
+  useEffect(() => {
+    setQ(sp.get("q") ?? "");
+    setRama(sp.get("rama") ?? "");
+    setActivo(sp.get("activo") ?? "");
+  }, [sp]);
+
   // ✅ auto-búsqueda con debounce
   useEffect(() => {
     const t = setTimeout(() => {
       const params = new URLSearchParams(sp.toString());
 
-      // mantenemos el toast si existe? mejor NO, así no queda pegado
-      params.delete("toast");
+      if (!includeToastParam) params.delete("toast");
 
       if (q.trim()) params.set("q", q.trim());
       else params.delete("q");
@@ -47,6 +61,13 @@ export default function ProtagonistasFilters({ ramas, initialQ, initialRama, ini
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, rama, activo]);
 
+  function limpiar() {
+    setQ("");
+    setRama("");
+    setActivo("");
+    router.replace(pathname, { scroll: false });
+  }
+
   return (
     <div className="mb-6">
       <div className="flex flex-col sm:flex-row gap-3">
@@ -54,7 +75,7 @@ export default function ProtagonistasFilters({ ramas, initialQ, initialRama, ini
           type="text"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Buscar por nombre o apellido..."
+          placeholder={placeholder}
           className="px-3 py-1 rounded-lg border w-full sm:w-72"
         />
 
@@ -76,14 +97,21 @@ export default function ProtagonistasFilters({ ramas, initialQ, initialRama, ini
           onChange={(e) => setActivo(e.target.value)}
           className="px-3 py-1 rounded-lg border w-full sm:w-56 bg-white"
         >
-          <option value="">Todos</option>
+          <option value="">Todos los estados</option>
           <option value="true">Activos</option>
           <option value="false">Inactivos</option>
         </select>
 
-       
+        {hasFilters && (
+          <button
+            type="button"
+            onClick={limpiar}
+            className="px-3 py-1 rounded-lg border text-sm hover:bg-gray-50"
+          >
+            Limpiar
+          </button>
+        )}
       </div>
-
     </div>
   );
 }

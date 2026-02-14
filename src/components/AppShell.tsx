@@ -77,7 +77,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [role, setRole] = useState<Role | null>(null);
   const [fullName, setFullName] = useState<string>("");
 
-  // Si querés dark mode luego: podemos guardar un flag en localStorage y aplicar class "dark" arriba.
   const [dark, setDark] = useState(false);
 
   useEffect(() => {
@@ -134,7 +133,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       return [
         ...common,
         { label: "Protagonistas", href: "/protagonistas", icon: <IconUsers /> },
-        { label: "Administrar cuotas", href: "/admin/cuotas", icon: <IconMoney /> },
+        { label: "Administrar valores de cuotas", href: "/admin/valores", icon: <IconMoney /> },
+        { label: "Administrar pagos de cuotas", href: "/admin/cuotas", icon: <IconMoney /> },
         { label: "Administrar autorizaciones", href: "/admin/autorizaciones", icon: <IconDoc /> },
         { label: "Administrar ventas", href: "/admin/ventas", icon: <IconMoney /> },
         { label: "Ventas de protagonistas", href: "/ventas/protagonistas", icon: <IconMoney /> },
