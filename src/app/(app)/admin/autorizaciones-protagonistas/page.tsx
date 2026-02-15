@@ -126,7 +126,7 @@ export default async function AdminAutorizacionesProtagonistasPage({
 
         <div className="w-full overflow-hidden rounded-lg shadow">
           <div className="w-full overflow-x-auto">
-            <table className="min-w-[1250px] w-full whitespace-nowrap text-sm">
+            <table className="min-w-312.5 w-full whitespace-nowrap text-sm">
               <thead>
                 <tr
                   className="text-xs font-semibold tracking-wide text-left text-gray-500 uppercase border-b
