@@ -151,7 +151,7 @@ export default async function MisCuotasPage() {
       <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <Link href="/padres" className="text-sm text-gray-600 hover:underline">← Volver</Link>
+            <Link href="/" className="text-sm text-gray-600 hover:underline">← Volver</Link>
             <h1 className="text-2xl font-semibold text-gray-700 dark:text-gray-200 mt-2">
               Detalle de cuotas {year}
             </h1>

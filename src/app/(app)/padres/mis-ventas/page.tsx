@@ -51,7 +51,7 @@ export default async function MisVentasPage() {
     return (
       <main className="min-h-screen">
         <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-3xl">
-          <Link href="/padres" className="text-sm text-gray-600 hover:underline">
+          <Link href="/" className="text-sm text-gray-600 hover:underline">
             ← Volver
           </Link>
           <div className="mt-4 bg-white dark:bg-gray-800 rounded-xl shadow p-5">
@@ -79,7 +79,7 @@ export default async function MisVentasPage() {
     return (
       <main className="min-h-screen">
         <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-4xl space-y-4">
-          <Link href="/padres" className="text-sm text-gray-600 hover:underline">
+          <Link href="/" className="text-sm text-gray-600 hover:underline">
             ← Volver
           </Link>
           <h1 className="text-2xl font-semibold text-gray-700 dark:text-gray-200">Mis ventas</h1>
@@ -129,7 +129,7 @@ export default async function MisVentasPage() {
       <main className="min-h-screen">
         <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-6xl space-y-6">
           <div>
-            <Link href="/padres" className="text-sm text-gray-600 hover:underline">
+            <Link href="/" className="text-sm text-gray-600 hover:underline">
               ← Volver
             </Link>
             <h1 className="text-2xl font-semibold text-gray-700 dark:text-gray-200 mt-2">Mis ventas</h1>
@@ -270,7 +270,7 @@ export default async function MisVentasPage() {
     <main className="min-h-screen">
       <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-6xl space-y-6">
         <div>
-          <Link href="/padres" className="text-sm text-gray-600 hover:underline">
+          <Link href="/" className="text-sm text-gray-600 hover:underline">
             ← Volver
           </Link>
           <h1 className="text-2xl font-semibold text-gray-700 dark:text-gray-200 mt-2">Mis ventas</h1>

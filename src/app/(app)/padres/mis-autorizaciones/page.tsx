@@ -57,7 +57,7 @@ export default async function MisAutorizacionesPage() {
     return (
       <main className="min-h-screen">
         <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-3xl">
-          <Link href="/padres" className="text-sm text-gray-600 hover:underline">← Volver</Link>
+          <Link href="/" className="text-sm text-gray-600 hover:underline">← Volver</Link>
           <div className="mt-4 bg-white dark:bg-gray-800 rounded-xl shadow p-5">
             <h1 className="text-2xl font-semibold text-gray-800 dark:text-gray-200">Detalle de autorizaciones</h1>
             <p className="mt-3 text-sm text-gray-600 dark:text-gray-300">
@@ -126,7 +126,7 @@ export default async function MisAutorizacionesPage() {
       <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <Link href="/padres" className="text-sm text-gray-600 hover:underline">← Volver</Link>
+            <Link href="/" className="text-sm text-gray-600 hover:underline">← Volver</Link>
             <h1 className="text-2xl font-semibold text-gray-700 dark:text-gray-200 mt-2">
               Detalle de autorizaciones ({anio})
             </h1>

@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase/browser";
 import { usePathname } from "next/navigation";
 
-
 type Role = "educador" | "padre";
 
 type NavItem = {
@@ -17,7 +16,11 @@ type NavItem = {
 function IconHome() {
   return (
     <svg className="w-5 h-5" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2 7-7 7 7 2 2M5 10v10a1 1 0 001 1h3m10-11v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1" />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M3 12l2-2 7-7 7 7 2 2M5 10v10a1 1 0 001 1h3m10-11v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1"
+      />
     </svg>
   );
 }
@@ -25,7 +28,11 @@ function IconHome() {
 function IconUsers() {
   return (
     <svg className="w-5 h-5" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 00-4-4h-1M9 20H2v-2a4 4 0 014-4h1m8-4a4 4 0 10-8 0 4 4 0 008 0zm6 4a3 3 0 10-6 0 3 3 0 006 0z" />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M17 20h5v-2a4 4 0 00-4-4h-1M9 20H2v-2a4 4 0 014-4h1m8-4a4 4 0 10-8 0 4 4 0 008 0zm6 4a3 3 0 10-6 0 3 3 0 006 0z"
+      />
     </svg>
   );
 }
@@ -33,7 +40,11 @@ function IconUsers() {
 function IconDoc() {
   return (
     <svg className="w-5 h-5" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6M9 8h6M7 4h10a2 2 0 012 2v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2z" />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M9 12h6m-6 4h6M9 8h6M7 4h10a2 2 0 012 2v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2z"
+      />
     </svg>
   );
 }
@@ -41,7 +52,11 @@ function IconDoc() {
 function IconMoney() {
   return (
     <svg className="w-5 h-5" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-2m2-6h-6m6 0a2 2 0 012 2v2a2 2 0 01-2 2h-6m6-6V9a2 2 0 00-2-2h-1" />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-2m2-6h-6m6 0a2 2 0 012 2v2a2 2 0 01-2 2h-6m6-6V9a2 2 0 00-2-2h-1"
+      />
     </svg>
   );
 }
@@ -57,7 +72,11 @@ function IconTent() {
 function IconBook() {
   return (
     <svg className="w-5 h-5" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5S19.832 5.477 21 6.253v13C19.832 18.477 18.246 18 16.5 18s-3.332.477-4.5 1.253" />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5S19.832 5.477 21 6.253v13C19.832 18.477 18.246 18 16.5 18s-3.332.477-4.5 1.253"
+      />
     </svg>
   );
 }
@@ -72,6 +91,7 @@ function IconLogout() {
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const supabase = createSupabaseBrowser();
+  const pathname = usePathname();
 
   const [sideOpen, setSideOpen] = useState(false);
   const [role, setRole] = useState<Role | null>(null);
@@ -79,9 +99,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   const [dark, setDark] = useState(false);
 
+  // ✅ Cierra el sidebar móvil automáticamente cuando cambia la ruta
+  useEffect(() => {
+    setSideOpen(false);
+  }, [pathname]);
+
   useEffect(() => {
     async function load() {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
       if (!user) {
         window.location.href = "/login";
         return;
@@ -101,7 +129,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // 2) Si no es educador, intento: padre
       const { data: padre, error: padreErr } = await supabase
         .from("padres")
         .select("nombre, apellido, email")
@@ -116,7 +143,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // 3) Si no está en ninguna tabla:
       setRole(null);
       setFullName(user.email ?? "");
     }
@@ -125,9 +151,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }, [supabase]);
 
   const navItems: NavItem[] = useMemo(() => {
-    const common: NavItem[] = [
-      { label: "Inicio", href: "/", icon: <IconHome /> },
-    ];
+    const common: NavItem[] = [{ label: "Inicio", href: "/", icon: <IconHome /> }];
 
     if (role === "educador") {
       return [
@@ -157,7 +181,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       ];
     }
 
-    // Si todavía no resolvió rol (cargando), mostramos solo inicio.
     return common;
   }, [role]);
 
@@ -167,21 +190,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     <div className={dark ? "dark" : ""}>
       <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
         {/* Backdrop móvil */}
-        {sideOpen && (
-          <div
-            onClick={() => setSideOpen(false)}
-            className="fixed inset-0 z-10 bg-black/50 md:hidden"
-          />
-        )}
+        {sideOpen && <div onClick={() => setSideOpen(false)} className="fixed inset-0 z-10 bg-black/50 md:hidden" />}
 
-        {/* Sidebar */}
-        <aside
-          className={[
-            "z-20 w-64 overflow-y-auto bg-white dark:bg-gray-800 shrink-0",
-            "hidden md:block",
-          ].join(" ")}
-        >
-          <Sidebar appName={appName} navItems={navItems} />
+        {/* Sidebar desktop */}
+        <aside className={["z-20 w-64 overflow-y-auto bg-white dark:bg-gray-800 shrink-0", "hidden md:block"].join(" ")}>
+          <Sidebar appName={appName} navItems={navItems} onNavigate={() => setSideOpen(false)} />
         </aside>
 
         {/* Sidebar móvil */}
@@ -192,7 +205,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             sideOpen ? "translate-x-0" : "-translate-x-72",
           ].join(" ")}
         >
-          <Sidebar appName={appName} navItems={navItems} />
+          <Sidebar appName={appName} navItems={navItems} onNavigate={() => setSideOpen(false)} />
         </aside>
 
         {/* Main */}
@@ -215,38 +228,32 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 </svg>
               </button>
 
-              {/*  placeholder solo para agregar espacio */}
+              {/* placeholder */}
               <div className="flex justify-center flex-1 lg:mr-32">
                 <div className="relative w-full max-w-xl mr-6">
-                  <div className="absolute inset-y-0 flex items-center pl-2 text-gray-500">
-
-                  </div>
+                  <div className="absolute inset-y-0 flex items-center pl-2 text-gray-500"></div>
                 </div>
               </div>
 
               {/* Acciones derecha */}
               <ul className="flex items-center shrink-0 space-x-4">
-
-                {/* “Perfil” simple + logout */}
                 <li className="flex items-center gap-3">
                   <div className="hidden sm:flex flex-col text-right">
-                    <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">
-                      {fullName || "Cargando..."}
-                    </span>
+                    <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">{fullName || "Cargando..."}</span>
                   </div>
 
                   <form action="/logout" method="post">
-                      <button
-                        type="submit"
-                        className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md border border-gray-200
-                                  dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500
-                                  focus:outline-none focus:ring-2 focus:ring-[#FCDB52]/30"
-                        title="Salir"
-                      >
-                        <IconLogout />
-                        <span className="hidden sm:inline">Salir</span>
-                      </button>
-                    </form>
+                    <button
+                      type="submit"
+                      className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md border border-gray-200
+                                dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500
+                                focus:outline-none focus:ring-2 focus:ring-[#FCDB52]/30"
+                      title="Salir"
+                    >
+                      <IconLogout />
+                      <span className="hidden sm:inline">Salir</span>
+                    </button>
+                  </form>
                 </li>
               </ul>
             </div>
@@ -254,9 +261,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
           {/* Content */}
           <main className="h-full overflow-y-auto">
-            <div className="container px-6 mx-auto">
-              {children}
-            </div>
+            <div className="container px-6 mx-auto">{children}</div>
           </main>
         </div>
       </div>
@@ -264,13 +269,21 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Sidebar({ appName, navItems }: { appName: string; navItems: NavItem[] }) {
+function Sidebar({
+  appName,
+  navItems,
+  onNavigate,
+}: {
+  appName: string;
+  navItems: NavItem[];
+  onNavigate?: () => void;
+}) {
   const pathname = usePathname();
   const active = pathname || "/";
 
   return (
     <div className="py-4 text-gray-500 dark:text-gray-400">
-      <Link className="ml-6 text-lg font-bold text-gray-800 dark:text-gray-200" href="/">
+      <Link className="ml-6 text-lg font-bold text-gray-800 dark:text-gray-200" href="/" onClick={onNavigate}>
         {appName}
       </Link>
 
@@ -281,14 +294,12 @@ function Sidebar({ appName, navItems }: { appName: string; navItems: NavItem[] }
           return (
             <li key={item.href} className="relative px-6 py-3">
               {isActive && (
-                <span
-                  className="absolute inset-y-0 left-0 w-1 bg-[#FCDB52] rounded-tr-lg rounded-br-lg"
-                  aria-hidden="true"
-                />
+                <span className="absolute inset-y-0 left-0 w-1 bg-[#FCDB52] rounded-tr-lg rounded-br-lg" aria-hidden="true" />
               )}
 
               <Link
                 href={item.href}
+                onClick={onNavigate}
                 className={[
                   "inline-flex items-center w-full text-sm font-semibold transition-colors duration-150",
                   "hover:text-gray-800 dark:hover:text-gray-200",
@@ -302,9 +313,6 @@ function Sidebar({ appName, navItems }: { appName: string; navItems: NavItem[] }
           );
         })}
       </ul>
-
-      
     </div>
   );
-
 }
