@@ -18,7 +18,7 @@ type Educador = {
   activo: boolean;
 };
 
-const RAMAS = ["Lobatos y Lobeznas", "Scout", "Caminantes", "Rovers"] as const;
+const RAMAS = ["Lobatos y Lobeznas", "Scout", "Caminantes", "Rover"] as const;
 
 function EstadoPill({ activo }: { activo: boolean }) {
   const base =

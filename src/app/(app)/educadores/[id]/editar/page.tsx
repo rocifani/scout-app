@@ -6,7 +6,7 @@ import {
   setEducadorActivoAction,
 } from "./actions";
 
-const RAMAS = ["Lobatos y Lobeznas", "Scout", "Caminantes", "Rovers"] as const;
+const RAMAS = ["Lobatos y Lobeznas", "Scout", "Caminantes", "Rover"] as const;
 
 export default async function EditarEducadorPage({
   params,

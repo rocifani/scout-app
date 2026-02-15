@@ -133,15 +133,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       return [
         ...common,
         { label: "Protagonistas", href: "/protagonistas", icon: <IconUsers /> },
-        { label: "Administrar valores de cuotas", href: "/admin/valores", icon: <IconMoney /> },
-        { label: "Administrar pagos de cuotas", href: "/admin/cuotas", icon: <IconMoney /> },
-        { label: "Administrar autorizaciones", href: "/admin/autorizaciones", icon: <IconDoc /> },
+        { label: "Pagos de cuotas", href: "/admin/cuotas", icon: <IconMoney /> },
+        { label: "Autorizaciones entregadas", href: "/admin/autorizaciones-protagonistas", icon: <IconDoc /> },
         { label: "Administrar ventas", href: "/admin/ventas", icon: <IconMoney /> },
         { label: "Ventas de protagonistas", href: "/ventas/protagonistas", icon: <IconMoney /> },
         { label: "Educadores", href: "/educadores", icon: <IconUsers /> },
         { label: "Inventario de carpas", href: "/carpas", icon: <IconTent /> },
         { label: "Cursos", href: "/cursos", icon: <IconBook /> },
         { label: "Cursos de educadores", href: "/cursos-educadores", icon: <IconBook /> },
+        { label: "Valores de cuotas", href: "/admin/valores", icon: <IconMoney /> },
+        { label: "Listado de autorizaciones", href: "/admin/autorizaciones", icon: <IconDoc /> },
       ];
     }
 

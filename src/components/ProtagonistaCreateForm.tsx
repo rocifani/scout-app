@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-const RAMAS = ["Lobatos y Lobeznas", "Scout", "Caminantes", "Rovers"] as const;
+const RAMAS = ["Lobatos y Lobeznas", "Scout", "Caminantes", "Rover"] as const;
 const RELACIONES = ["Papá", "Mamá", "Tutor"] as const;
 
 type Rama = (typeof RAMAS)[number];

@@ -1,8 +1,8 @@
-// src/app/(app)/admin/cuotas/page.tsx
 import Link from "next/link";
 import { createSupabaseServer } from "@/lib/supabase/server";
 import { marcarCuotaPagadaAction, marcarCuotaImpagaAction } from "./actions";
 import CuotaCellConfirm from "@/components/CuotaCellConfirm";
+import TableFilters from "@/components/TableFilters";
 
 const MESES = [
   { label: "Abr", month: 4 },
@@ -15,6 +15,8 @@ const MESES = [
   { label: "Nov", month: 11 },
   { label: "Dic", month: 12 },
 ] as const;
+
+const RAMAS = ["Lobatos y Lobeznas", "Scout", "Caminantes", "Rover"] as const;
 
 function periodoISO(year: number, month: number) {
   return `${year}-${String(month).padStart(2, "0")}-01`;
@@ -43,27 +45,61 @@ type ProtaRow = {
   activo: boolean;
 };
 
-export default async function AdminCuotasPage() {
+export default async function AdminCuotasPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{
+    q?: string;
+    rama?: string;
+    activo?: string; // "", "true", "false"
+  }>;
+}) {
+  const sp = (await searchParams) ?? {};
+  const q = (sp.q ?? "").trim();
+  const rama = (sp.rama ?? "").trim();
+  const activo = (sp.activo ?? "").trim();
+
   const supabase = await createSupabaseServer();
   const year = new Date().getFullYear();
 
   const from = periodoISO(year, 4);
   const to = periodoISO(year, 12);
 
-  const { data: protas, error: protasErr } = await supabase
+  // ✅ Protagonistas con filtros (como en protagonistas)
+  let protasQuery = supabase
     .from("protagonistas")
-    .select("id,nombre,apellido,rama,activo")
+    .select("id,nombre,apellido,rama,activo");
+
+  if (q) {
+    const safe = q.replace(/%/g, "\\%").replace(/_/g, "\\_");
+    protasQuery = protasQuery.or(`nombre.ilike.%${safe}%,apellido.ilike.%${safe}%`);
+  }
+
+  if (rama) protasQuery = protasQuery.eq("rama", rama);
+
+  if (activo === "true") protasQuery = protasQuery.eq("activo", true);
+  if (activo === "false") protasQuery = protasQuery.eq("activo", false);
+
+  const { data: protas, error: protasErr } = await protasQuery
     .order("apellido", { ascending: true })
     .order("nombre", { ascending: true });
 
-  const { data: cuotas, error: cuotasErr } = await supabase
-  .from("cuotas")
-  .select("id,id_protagonista,periodo,tipo_pago,fecha_pago, cuota_valor:cuota_valores!cuotas_id_valor_fkey(valor)")
-  .gte("periodo", from)
-  .lte("periodo", to);
-
-
   const protasTyped = (protas ?? []) as ProtaRow[];
+  const protaIds = protasTyped.map((p) => p.id);
+
+  // ✅ Cuotas solo para los protagonistas filtrados
+  const { data: cuotas, error: cuotasErr } =
+    protaIds.length === 0
+      ? { data: [], error: null }
+      : await supabase
+          .from("cuotas")
+          .select(
+            "id,id_protagonista,periodo,tipo_pago,fecha_pago, cuota_valor:cuota_valores!cuotas_id_valor_fkey(valor)"
+          )
+          .in("id_protagonista", protaIds)
+          .gte("periodo", from)
+          .lte("periodo", to);
+
   const cuotasTyped = (cuotas ?? []) as unknown as CuotaRaw[];
 
   const byProta = new Map<number, Record<string, CuotaRaw>>();
@@ -84,8 +120,24 @@ export default async function AdminCuotasPage() {
             </h1>
           </div>
 
-        
+          <Link
+            href="/admin/valores"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg
+                       bg-[#FCDB52] text-gray-900
+                       hover:bg-[#F3D146] active:bg-[#E9C83D]
+                       focus:outline-none focus:ring-2 focus:ring-[#FCDB52]/40"
+          >
+            Actualizar valores
+          </Link>
         </div>
+
+        {/* ✅ Reutilizamos el mismo componente de filtros */}
+        <TableFilters
+          ramas={[...RAMAS]}
+          initialQ={q}
+          initialRama={rama}
+          initialActivo={activo}
+        />
 
         {(protasErr || cuotasErr) && (
           <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-800">
@@ -126,7 +178,6 @@ export default async function AdminCuotasPage() {
                         <div className="font-semibold">
                           {p.apellido}, {p.nombre}
                         </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">ID {p.id}</div>
                       </td>
 
                       <td className="px-4 py-3">{p.rama}</td>
@@ -165,8 +216,11 @@ export default async function AdminCuotasPage() {
 
                 {protasTyped.length === 0 && (
                   <tr>
-                    <td colSpan={4 + MESES.length} className="px-4 py-6 text-sm text-gray-500 dark:text-gray-400">
-                      No hay protagonistas.
+                    <td
+                      colSpan={4 + MESES.length}
+                      className="px-4 py-6 text-sm text-gray-500 dark:text-gray-400"
+                    >
+                      No hay protagonistas para esos filtros.
                     </td>
                   </tr>
                 )}
@@ -181,11 +235,6 @@ export default async function AdminCuotasPage() {
             Total: {protasTyped.length}
           </div>
         </div>
-
-        <p className="text-xs text-gray-500 dark:text-gray-400">
-          Nota: Afiliación solo aparece si la guardás como fila en <code>cuotas</code> con{" "}
-          <code>tipo_pago='afiliacion'</code> y un <code>periodo</code> dentro de Abril–Diciembre.
-        </p>
       </div>
     </main>
   );

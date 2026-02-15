@@ -2,7 +2,7 @@ import Link from "next/link";
 import { createSupabaseServer } from "@/lib/supabase/server";
 import { setProtagonistaActivoAction, updateProtagonistaAction, updatePadreYRelacionAction } from "./actions";
 
-const RAMAS = ["Lobatos y Lobeznas", "Scout", "Caminantes", "Rovers"] as const;
+const RAMAS = ["Lobatos y Lobeznas", "Scout", "Caminantes", "Rover"] as const;
 
 type Padre = {
   id: number;

@@ -14,7 +14,7 @@ type Protagonista = {
   dni: number;
 };
 
-const RAMAS = ["Lobatos y Lobeznas", "Scout", "Caminantes", "Rovers"] as const;
+const RAMAS = ["Lobatos y Lobeznas", "Scout", "Caminantes", "Rover"] as const;
 
 function formatARDate(dateString: string) {
   const [year, month, day] = dateString.split("-");

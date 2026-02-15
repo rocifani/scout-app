@@ -19,7 +19,7 @@ type Props = {
   ramas?: string[];
 };
 
-const DEFAULT_RAMAS = ["Lobatos y Lobeznas", "Scout", "Caminantes", "Rovers"];
+const DEFAULT_RAMAS = ["Lobatos y Lobeznas", "Scout", "Caminantes", "Rover"];
 
 export default function EducadorForm({
   action,

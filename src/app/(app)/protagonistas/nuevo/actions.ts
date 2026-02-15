@@ -189,5 +189,31 @@ export async function createProtagonistaConPadres(formData: FormData) {
 
   if (cuotasErr) throw new Error(cuotasErr.message);
 
+    // 4) Generar autorizaciones_protagonistas del año actual para este protagonista
+  const { data: auts, error: autSelErr } = await supabaseAdmin
+    .from("autorizaciones")
+    .select("id")
+    .eq("activo", true);
+
+  if (autSelErr) throw new Error(autSelErr.message);
+
+  const toInsert = (auts ?? []).map((a) => ({
+    id_protagonista: idProtagonista,
+    id_autorizacion: a.id,
+    anio_vigencia: anio,
+    entregada: false,
+  }));
+
+  if (toInsert.length > 0) {
+    // Si todavía no tenés unique constraint, esto puede duplicar si lo llamás 2 veces.
+    // (Te dejo abajo el SQL recomendado para evitarlo.)
+    const { error: autInsErr } = await supabaseAdmin
+      .from("autorizaciones_protagonistas")
+      .insert(toInsert);
+
+    if (autInsErr) throw new Error(autInsErr.message);
+  }
+
+
   redirect("/protagonistas");
 }
