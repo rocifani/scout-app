@@ -135,8 +135,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         { label: "Protagonistas", href: "/protagonistas", icon: <IconUsers /> },
         { label: "Pagos de cuotas", href: "/admin/cuotas", icon: <IconMoney /> },
         { label: "Autorizaciones entregadas", href: "/admin/autorizaciones-protagonistas", icon: <IconDoc /> },
-        { label: "Administrar ventas", href: "/admin/ventas", icon: <IconMoney /> },
         { label: "Ventas de protagonistas", href: "/admin/ventas-protagonistas", icon: <IconMoney /> },
+        { label: "Administrar ventas", href: "/admin/ventas", icon: <IconMoney /> },
+        { label: "Fondo campamento final", href: "/admin/fondo-campamento-final", icon: <IconMoney /> },
         { label: "Educadores", href: "/educadores", icon: <IconUsers /> },
         { label: "Inventario de carpas", href: "/admin/carpas", icon: <IconTent /> },
         { label: "Cursos", href: "/admin/cursos", icon: <IconBook /> },
@@ -149,10 +150,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     if (role === "padre") {
       return [
         ...common,
-        { label: "Perfil de mi hijo/a", href: "/mi-hijo", icon: <IconUsers /> },
-        { label: "Detalle de cuotas", href: "/mis-cuotas", icon: <IconMoney /> },
-        { label: "Detalle de autorizaciones", href: "/mis-autorizaciones", icon: <IconDoc /> },
-        { label: "Mis ventas", href: "/mis-ventas", icon: <IconMoney /> },
+        { label: "Perfil de mi hijo/a", href: "/padres/mi-hijo", icon: <IconUsers /> },
+        { label: "Detalle de cuotas", href: "/padres/mis-cuotas", icon: <IconMoney /> },
+        { label: "Detalle de autorizaciones", href: "/padres/mis-autorizaciones", icon: <IconDoc /> },
+        { label: "Mis ventas", href: "/padres/mis-ventas", icon: <IconMoney /> },
       ];
     }
 

@@ -117,7 +117,7 @@ export default function LoginPage() {
                 )}
 
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  Nota: para iniciar sesión, tenés que utilizar el mail que proporcionaste a los educadores al inicio de actividades. Como contraseña, colocá el DNI de tu hijo/a.
+                  Nota: para iniciar sesión, tenés que utilizar el mail que proporcionaste a los educadores al inicio de actividades. Como contraseña, colocá tu dni.
                 </p>
               </div>
             </div>

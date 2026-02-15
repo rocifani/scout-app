@@ -19,8 +19,72 @@ function getSupabaseAdmin() {
   return createClient(url, serviceKey, { auth: { persistSession: false } });
 }
 
+// -------------------------
+// Helpers AUTH
+// -------------------------
+async function getAuthUserIdByEmail(supabaseAdmin: ReturnType<typeof getSupabaseAdmin>, email: string) {
+  const target = email.trim().toLowerCase();
+  let page = 1;
+  const perPage = 1000;
+
+  while (true) {
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+    if (error) throw new Error(`Error listando usuarios auth: ${error.message}`);
+
+    const users = data?.users ?? [];
+    const found = users.find((u) => (u.email ?? "").toLowerCase() === target);
+    if (found?.id) return found.id;
+
+    if (users.length < perPage) break;
+    page += 1;
+  }
+
+  return null;
+}
+
+async function getOrCreateAuthUserIdByEmail(
+  supabaseAdmin: ReturnType<typeof getSupabaseAdmin>,
+  email: string,
+  password: string
+) {
+  const normalized = email.trim().toLowerCase();
+
+  // 1) Si ya existe en Auth, devolvemos ese id
+  const existingId = await getAuthUserIdByEmail(supabaseAdmin, normalized);
+  if (existingId) return existingId;
+
+  // 2) Si no existe, lo creamos
+  const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
+    email: normalized,
+    password,
+    email_confirm: true,
+  });
+
+  if (createErr) {
+    // Race condition: si alguien lo creó justo antes, buscamos de nuevo
+    const msg = (createErr.message || "").toLowerCase();
+    const isDup =
+      msg.includes("already") || msg.includes("registered") || msg.includes("exists") || msg.includes("duplicate");
+
+    if (isDup) {
+      const id = await getAuthUserIdByEmail(supabaseAdmin, normalized);
+      if (id) return id;
+    }
+
+    throw new Error(`Error creando usuario para ${normalized}: ${createErr.message}`);
+  }
+
+  const newId = created?.user?.id;
+  if (!newId) throw new Error(`No se pudo obtener el ID del usuario creado (${normalized}).`);
+
+  return newId;
+}
+
+// -------------------------
+// ACTION
+// -------------------------
 export async function createProtagonistaConPadres(formData: FormData) {
-  const supabase = await createSupabaseServer();
+  const supabase = await createSupabaseServer(); // (si no lo usás, lo podés borrar)
   const supabaseAdmin = getSupabaseAdmin();
 
   const nombre = String(formData.get("nombre") ?? "").trim();
@@ -64,7 +128,7 @@ export async function createProtagonistaConPadres(formData: FormData) {
   if (protaErr) throw new Error(protaErr.message);
   const idProtagonista = protaInserted.id as number;
 
-  // 2) Por cada padre: crear/actualizar en tabla padres + crear usuario auth + relacion
+  // 2) Padres
   for (const padre of padres) {
     const pNombre = String(padre.nombre ?? "").trim();
     const pApellido = String(padre.apellido ?? "").trim();
@@ -77,7 +141,7 @@ export async function createProtagonistaConPadres(formData: FormData) {
       throw new Error("Faltan datos en alguno de los padres/tutores.");
     }
 
-    // Buscar si ya existe el padre por DNI (ideal: poner UNIQUE(dni) en padres)
+    // Buscar padre por DNI
     const { data: padreExistente, error: padreSelErr } = await supabaseAdmin
       .from("padres")
       .select("id, auth_user_id")
@@ -109,7 +173,7 @@ export async function createProtagonistaConPadres(formData: FormData) {
     } else {
       idPadre = padreExistente.id as number;
 
-      // Opcional: actualizar datos de contacto por si cambiaron
+      // Actualizar datos de contacto
       const { error: padreUpdErr } = await supabaseAdmin
         .from("padres")
         .update({
@@ -123,44 +187,11 @@ export async function createProtagonistaConPadres(formData: FormData) {
       if (padreUpdErr) throw new Error(padreUpdErr.message);
     }
 
-    // Crear usuario auth si no está asociado
+    // ✅ Acá está la magia: si no tiene auth_user_id, lo buscamos/creamos por email
     if (!authUserId) {
-      // ⚠️ Contraseña = DNI del protagonista (como pediste). Recomendación: forzar cambio luego.
-      const { data: created, error: createUserErr } = await supabaseAdmin.auth.admin.createUser({
-        email: pEmail,
-        password: dniProta,
-        email_confirm: true, // si querés que ya quede confirmado
-      });
+      // Password = DNI del padre
+      authUserId = await getOrCreateAuthUserIdByEmail(supabaseAdmin, pEmail, pDni);
 
-      if (createUserErr) {
-            // Si el email ya existe, no frenamos el flujo.
-            // (Después, si querés, hacemos el link con auth_user_id)
-            const msg = (createUserErr.message || "").toLowerCase();
-            if (msg.includes("already") || msg.includes("registered") || msg.includes("exists")) {
-                // seguimos sin setear authUserId
-            } else {
-                throw new Error(`Error creando usuario para ${pEmail}: ${createUserErr.message}`);
-            }
-            } else {
-            authUserId = created.user.id;
-
-            const { error: padreAuthUpdErr } = await supabaseAdmin
-                .from("padres")
-                .update({ auth_user_id: authUserId })
-                .eq("id", idPadre);
-
-            if (padreAuthUpdErr) throw new Error(padreAuthUpdErr.message);
-            }
-
-
-      if (!created?.user?.id) {
-        throw new Error("No se pudo obtener el ID del usuario creado.");
-        }
-
-        authUserId = created.user.id;
-
-
-      // Guardar auth_user_id en tabla padres
       const { error: padreAuthUpdErr } = await supabaseAdmin
         .from("padres")
         .update({ auth_user_id: authUserId })
@@ -169,7 +200,7 @@ export async function createProtagonistaConPadres(formData: FormData) {
       if (padreAuthUpdErr) throw new Error(padreAuthUpdErr.message);
     }
 
-    // Insertar relación padre-protagonista (ideal: UNIQUE(id_protagonista,id_padre))
+    // Relación padre-protagonista
     const { error: relErr } = await supabaseAdmin.from("padres_protagonistas").insert({
       id_protagonista: idProtagonista,
       id_padre: idPadre,
@@ -179,17 +210,16 @@ export async function createProtagonistaConPadres(formData: FormData) {
     if (relErr) throw new Error(relErr.message);
   }
 
-    // 3) Generar cuotas del año actual (Abr-Dic + afiliación) para este protagonista
+  // 3) Cuotas año actual
   const anio = new Date().getFullYear();
 
   const { error: cuotasErr } = await supabaseAdmin.rpc("generar_cuotas_para_protagonista", {
     p_protagonista_id: idProtagonista,
     p_anio: anio,
   });
-
   if (cuotasErr) throw new Error(cuotasErr.message);
 
-    // 4) Generar autorizaciones_protagonistas del año actual para este protagonista
+  // 4) Autorizaciones año actual
   const { data: auts, error: autSelErr } = await supabaseAdmin
     .from("autorizaciones")
     .select("id")
@@ -205,15 +235,9 @@ export async function createProtagonistaConPadres(formData: FormData) {
   }));
 
   if (toInsert.length > 0) {
-    // Si todavía no tenés unique constraint, esto puede duplicar si lo llamás 2 veces.
-    // (Te dejo abajo el SQL recomendado para evitarlo.)
-    const { error: autInsErr } = await supabaseAdmin
-      .from("autorizaciones_protagonistas")
-      .insert(toInsert);
-
+    const { error: autInsErr } = await supabaseAdmin.from("autorizaciones_protagonistas").insert(toInsert);
     if (autInsErr) throw new Error(autInsErr.message);
   }
-
 
   redirect("/protagonistas");
 }
