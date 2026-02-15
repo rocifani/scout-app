@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { createSupabaseServer } from "@/lib/supabase/server";
-import CursoForm from "@/components/CursoForm";
 import { updateCursoAction, setCursoSistemaActualAction } from "./actions";
 
 type Curso = {

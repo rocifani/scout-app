@@ -120,15 +120,7 @@ export default async function AdminCuotasPage({
             </h1>
           </div>
 
-          <Link
-            href="/admin/valores"
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg
-                       bg-[#FCDB52] text-gray-900
-                       hover:bg-[#F3D146] active:bg-[#E9C83D]
-                       focus:outline-none focus:ring-2 focus:ring-[#FCDB52]/40"
-          >
-            Actualizar valores
-          </Link>
+          
         </div>
 
         {/* ✅ Reutilizamos el mismo componente de filtros */}
