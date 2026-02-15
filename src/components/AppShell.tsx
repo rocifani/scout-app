@@ -136,7 +136,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         { label: "Pagos de cuotas", href: "/admin/cuotas", icon: <IconMoney /> },
         { label: "Autorizaciones entregadas", href: "/admin/autorizaciones-protagonistas", icon: <IconDoc /> },
         { label: "Administrar ventas", href: "/admin/ventas", icon: <IconMoney /> },
-        { label: "Ventas de protagonistas", href: "/admin/ventas/protagonistas", icon: <IconMoney /> },
+        { label: "Ventas de protagonistas", href: "/admin/ventas-protagonistas", icon: <IconMoney /> },
         { label: "Educadores", href: "/educadores", icon: <IconUsers /> },
         { label: "Inventario de carpas", href: "/admin/carpas", icon: <IconTent /> },
         { label: "Cursos", href: "/admin/cursos", icon: <IconBook /> },
