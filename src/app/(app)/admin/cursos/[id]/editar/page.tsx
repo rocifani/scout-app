@@ -92,7 +92,7 @@ export default async function EditarCursoPage({ params }: { params: Promise<{ id
               <input type="hidden" name="id" value={curso.id} />
               <input type="hidden" name="sistema_actual" value="false" />
               <button type="submit" className="px-4 py-2 rounded-lg text-red-700 bg-red-50 hover:bg-red-100">
-                Inactivar curso
+                Desactivar curso
               </button>
             </form>
           ) : (
