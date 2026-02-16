@@ -197,7 +197,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     return common;
   }, [role]);
 
-  const appName = "⚜️ GS Pablo Apóstol App";
+  const appName = "⚜️ GS Pablo Apóstol";
 
   return (
     <div className={dark ? "dark" : ""}>
