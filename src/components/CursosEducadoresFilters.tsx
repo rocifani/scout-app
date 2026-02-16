@@ -17,6 +17,12 @@ type Props = {
   ramas: string[];
 };
 
+const controlClass =
+  "px-3 py-2 rounded-lg border w-full focus:outline-none focus:ring-2 focus:ring-blue-500/40 " +
+  "bg-white text-gray-900 border-gray-300 " +
+  "dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700 " +
+  "placeholder:text-gray-400 dark:placeholder:text-gray-500";
+
 export default function CursosEducadoresFilters({
   initialQ,
   initialEducador,
@@ -40,7 +46,6 @@ export default function CursosEducadoresFilters({
     [q, educador, curso, rama]
   );
 
-  // ✅ auto-búsqueda con debounce
   useEffect(() => {
     const t = setTimeout(() => {
       const params = new URLSearchParams(sp.toString());
@@ -82,13 +87,13 @@ export default function CursosEducadoresFilters({
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Buscar por educador o curso..."
-            className="px-3 py-2 rounded-lg border w-full lg:w-80"
+            className={`${controlClass} lg:w-80`}
           />
 
           <select
             value={educador}
             onChange={(e) => setEducador(e.target.value)}
-            className="px-3 py-2 rounded-lg border w-full lg:w-72 bg-white"
+            className={`${controlClass} lg:w-72`}
           >
             <option value="">Todos los educadores</option>
             {educadores.map((e) => (
@@ -101,7 +106,7 @@ export default function CursosEducadoresFilters({
           <select
             value={curso}
             onChange={(e) => setCurso(e.target.value)}
-            className="px-3 py-2 rounded-lg border w-full lg:w-72 bg-white"
+            className={`${controlClass} lg:w-72`}
           >
             <option value="">Todos los cursos</option>
             {cursos.map((c) => (
@@ -114,7 +119,7 @@ export default function CursosEducadoresFilters({
           <select
             value={rama}
             onChange={(e) => setRama(e.target.value)}
-            className="px-3 py-2 rounded-lg border w-full lg:w-64 bg-white"
+            className={`${controlClass} lg:w-64`}
           >
             <option value="">Todas las ramas</option>
             {ramas.map((r) => (
@@ -128,7 +133,11 @@ export default function CursosEducadoresFilters({
             <button
               type="button"
               onClick={limpiar}
-              className="px-4 py-2 rounded-lg border font-semibold hover:bg-gray-50 dark:hover:bg-gray-700"
+              className={
+                "px-4 py-2 rounded-lg border font-semibold " +
+                "border-gray-300 hover:bg-gray-50 text-gray-900 " +
+                "dark:border-gray-700 dark:hover:bg-gray-700 dark:text-gray-100"
+              }
             >
               Limpiar
             </button>
