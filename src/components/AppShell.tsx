@@ -37,6 +37,18 @@ function IconUsers() {
   );
 }
 
+function IconReport() {
+  return (
+    <svg className="w-5 h-5" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+      />
+    </svg>
+  );
+}
+
 function IconDoc() {
   return (
     <svg className="w-5 h-5" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -159,8 +171,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         { label: "Protagonistas", href: "/protagonistas", icon: <IconUsers /> },
         { label: "Pagos de cuotas", href: "/admin/cuotas", icon: <IconMoney /> },
         { label: "Autorizaciones entregadas", href: "/admin/autorizaciones-protagonistas", icon: <IconDoc /> },
-        { label: "Ventas de protagonistas", href: "/admin/ventas-protagonistas", icon: <IconMoney /> },
-        { label: "Administrar ventas", href: "/admin/ventas", icon: <IconMoney /> },
+        { label: "Cargar ventas", href: "/admin/ventas-compras", icon: <IconMoney /> },
+        { label: "Resumen de ventas", href: "/admin/ventas-resumen", icon: <IconReport /> },
+        { label: "Crear nueva venta", href: "/admin/ventas", icon: <IconMoney /> },
         { label: "Fondo campamento final", href: "/admin/fondo-campamento-final", icon: <IconMoney /> },
         { label: "Educadores", href: "/educadores", icon: <IconUsers /> },
         { label: "Inventario de carpas", href: "/admin/carpas", icon: <IconTent /> },

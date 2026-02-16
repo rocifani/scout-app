@@ -2,11 +2,7 @@ import Link from "next/link";
 import { createSupabaseServerReadOnly } from "@/lib/supabase/server-readonly";
 import VentasProtagonistasPicker from "@/components/VentasProtagonistasPicker";
 import TableFilters from "@/components/TableFilters";
-import {
-  createVentaProtagonistaLineAction,
-  deleteVentaProtagonistaLineAction,
-  setVentaProtagonistaPagoAction,
-} from "./actions";
+import { createVentaCompraLineAction, deleteVentaCompraLineAction, setVentaCompraPagoAction } from "./actions";
 
 const RAMAS = ["Lobatos y Lobeznas", "Scout", "Caminantes", "Rover"] as const;
 
@@ -21,21 +17,20 @@ type VentaDetalle = {
   ganancia_grupo: number | null;
 };
 
-type Protagonista = {
-  id: number;
-  nombre: string;
-  apellido: string;
-  rama: string;
-  activo: boolean;
-};
-
 type Linea = {
   id: number;
-  id_protagonista: number;
+  comprador_tipo: "protagonista" | "educador" | "grupo";
+  id_protagonista: number | null;
+  id_educador: number | null;
   cantidad: number;
   pago: boolean;
   created_at: string;
 };
+
+type PersonaRow =
+  | { kind: "grupo"; key: "g:0"; label: string; ramaLabel: string }
+  | { kind: "educador"; key: string; id_educador: number; label: string; ramaLabel: string }
+  | { kind: "protagonista"; key: string; id_protagonista: number; label: string; ramaLabel: string };
 
 function money(n: number | null) {
   if (n === null || !Number.isFinite(n)) return "—";
@@ -47,7 +42,16 @@ function formatARDateTime(iso: string) {
   return d.toLocaleString("es-AR");
 }
 
-export default async function VentasProtagonistasPage({
+function badge(kind: PersonaRow["kind"]) {
+  const base = "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold border";
+  if (kind === "grupo")
+    return <span className={`${base} border-purple-200 bg-purple-50 text-purple-700`}>Grupo</span>;
+  if (kind === "educador")
+    return <span className={`${base} border-blue-200 bg-blue-50 text-blue-700`}>Educador</span>;
+  return <span className={`${base} border-green-200 bg-green-50 text-green-700`}>Protagonista</span>;
+}
+
+export default async function VentasPage({
   searchParams,
 }: {
   searchParams?: Promise<{
@@ -78,7 +82,7 @@ export default async function VentasProtagonistasPage({
   if (vErr) return <div className="p-6 text-red-600">Error ventas: {vErr.message}</div>;
   const ventasRows = (ventas ?? []) as VentaCabecera[];
 
-  // 2) Productos de la venta elegida
+  // 2) Productos
   let productosRows: VentaDetalle[] = [];
   if (ventaId) {
     const { data: dets, error: dErr } = await supabase
@@ -95,50 +99,102 @@ export default async function VentasProtagonistasPage({
   const selectedProducto =
     selectedProductoId ? productosRows.find((p) => p.id === selectedProductoId) ?? null : null;
 
-  // 3) Protagonistas activos + filtros
-  let protasQuery = supabase
-    .from("protagonistas")
-    .select("id, nombre, apellido, rama, activo")
-    .eq("activo", true);
+  // 3) Personas (Grupo + Educadores + Protagonistas) con filtros
+  const personas: PersonaRow[] = [];
 
-  if (q) {
-    const safe = q.replace(/%/g, "\\%").replace(/_/g, "\\_");
-    protasQuery = protasQuery.or(`nombre.ilike.%${safe}%,apellido.ilike.%${safe}%`);
+  // Grupo interno fijo (no depende de filtros)
+  personas.push({ kind: "grupo", key: "g:0", label: "Grupo Scout (interno)", ramaLabel: "—" });
+
+  // Educadores activos
+  {
+    let qy = supabase.from("educadores").select("id, nombre, apellido, rama, activo").eq("activo", true);
+
+    if (q) {
+      const safe = q.replace(/%/g, "\\%").replace(/_/g, "\\_");
+      qy = qy.or(`nombre.ilike.%${safe}%,apellido.ilike.%${safe}%`);
+    }
+    if (rama) qy = qy.eq("rama", rama);
+
+    const { data, error } = await qy.order("apellido", { ascending: true }).order("nombre", { ascending: true });
+    if (error) return <div className="p-6 text-red-600">Error educadores: {error.message}</div>;
+
+    (data ?? []).forEach((e: any) => {
+      const id = Number(e.id);
+      personas.push({
+        kind: "educador",
+        key: `e:${id}`,
+        id_educador: id,
+        label: `${e.apellido}, ${e.nombre}`,
+        ramaLabel: String(e.rama ?? "—"),
+      });
+    });
   }
-  if (rama) {
-    protasQuery = protasQuery.eq("rama", rama);
+
+  // Protagonistas activos
+  {
+    let qy = supabase.from("protagonistas").select("id, nombre, apellido, rama, activo").eq("activo", true);
+
+    if (q) {
+      const safe = q.replace(/%/g, "\\%").replace(/_/g, "\\_");
+      qy = qy.or(`nombre.ilike.%${safe}%,apellido.ilike.%${safe}%`);
+    }
+    if (rama) qy = qy.eq("rama", rama);
+
+    const { data, error } = await qy.order("apellido", { ascending: true }).order("nombre", { ascending: true });
+    if (error) return <div className="p-6 text-red-600">Error protagonistas: {error.message}</div>;
+
+    (data ?? []).forEach((p: any) => {
+      const id = Number(p.id);
+      personas.push({
+        kind: "protagonista",
+        key: `p:${id}`,
+        id_protagonista: id,
+        label: `${p.apellido}, ${p.nombre}`,
+        ramaLabel: String(p.rama ?? "—"),
+      });
+    });
   }
 
-  const { data: protas, error: pErr } = await protasQuery
-    .order("apellido", { ascending: true })
-    .order("nombre", { ascending: true });
+  const grupo = personas.filter((x) => x.kind === "grupo");
+  const resto = personas.filter((x) => x.kind !== "grupo");
 
-  if (pErr) return <div className="p-6 text-red-600">Error protagonistas: {pErr.message}</div>;
-  const protagonistas = (protas ?? []) as Protagonista[];
+  resto.sort((a, b) =>
+    a.label.localeCompare(b.label, "es", { sensitivity: "base" })
+  );
 
-  // 4) Líneas (todas las compras) del producto seleccionado
-  const linesByProta = new Map<number, Linea[]>();
+  const personasOrdenadas = [...grupo, ...resto];
+
+
+  // 4) Líneas: traemos TODAS las compras del producto y armamos mapa por key
+  const linesByKey = new Map<string, Linea[]>();
 
   if (selectedProductoId) {
     const { data: lines, error: lErr } = await supabase
-      .from("ventas_protagonistas")
-      .select("id, id_protagonista, cantidad, pago, created_at")
+      .from("ventas_compras")
+      .select("id, comprador_tipo, id_protagonista, id_educador, cantidad, pago, created_at")
       .eq("id_venta_detalle", selectedProductoId)
       .order("created_at", { ascending: false });
 
     if (lErr) return <div className="p-6 text-red-600">Error líneas: {lErr.message}</div>;
 
     (lines ?? []).forEach((ln: any) => {
-      const pid = Number(ln.id_protagonista);
-      const arr = linesByProta.get(pid) ?? [];
+      const tipo = String(ln.comprador_tipo) as Linea["comprador_tipo"];
+      const idProta = ln.id_protagonista ? Number(ln.id_protagonista) : null;
+      const idEdu = ln.id_educador ? Number(ln.id_educador) : null;
+
+      const key = tipo === "grupo" ? "g:0" : tipo === "educador" ? `e:${idEdu}` : `p:${idProta}`;
+
+      const arr = linesByKey.get(key) ?? [];
       arr.push({
         id: Number(ln.id),
-        id_protagonista: pid,
+        comprador_tipo: tipo,
+        id_protagonista: idProta,
+        id_educador: idEdu,
         cantidad: Number(ln.cantidad),
         pago: Boolean(ln.pago),
         created_at: String(ln.created_at),
       });
-      linesByProta.set(pid, arr);
+      linesByKey.set(key, arr);
     });
   }
 
@@ -156,10 +212,7 @@ export default async function VentasProtagonistasPage({
         )}
 
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-semibold text-gray-700 dark:text-gray-200">
-            Ventas · Protagonistas
-          </h1>
-
+          <h1 className="text-2xl font-semibold text-gray-700 dark:text-gray-200">Ventas</h1>
         </div>
 
         {/* Picker */}
@@ -179,9 +232,7 @@ export default async function VentasProtagonistasPage({
                   <span className="font-semibold">{money(gInd)}</span> · Gan. grupo:{" "}
                   <span className="font-semibold">{money(gGrp)}</span>
                 </div>
-                <div className="mt-1">
-                  Cargás compras por protagonista. Cada compra queda como una línea y después podés marcarla como pagada.
-                </div>
+                <div className="mt-1">Cargás compras por persona o por el grupo interno.</div>
               </>
             ) : (
               <div>Elegí una venta y un producto para empezar.</div>
@@ -199,14 +250,14 @@ export default async function VentasProtagonistasPage({
           )}
         </div>
 
-        {/* Buscador de protagonistas */}
+        {/* Filtros */}
         <TableFilters
           ramas={[...RAMAS]}
           initialQ={q}
           initialRama={rama}
-          initialActivo="" // no lo usamos (ya filtramos activo=true)
+          initialActivo=""
           includeToastParam={false}
-          placeholder="Buscar protagonista..."
+          placeholder="Buscar protagonista o educador..."
         />
 
         {/* Tabla */}
@@ -218,7 +269,7 @@ export default async function VentasProtagonistasPage({
                   className="text-xs font-semibold tracking-wide text-left text-gray-500 uppercase border-b
                              dark:border-gray-700 bg-gray-50 dark:text-gray-400 dark:bg-gray-800"
                 >
-                  <th className="px-4 py-3">Protagonista</th>
+                  <th className="px-4 py-3">Persona</th>
                   <th className="px-4 py-3">Rama</th>
                   <th className="px-4 py-3">Nueva compra</th>
                   <th className="px-4 py-3">Compras cargadas</th>
@@ -226,8 +277,8 @@ export default async function VentasProtagonistasPage({
               </thead>
 
               <tbody className="bg-white divide-y dark:divide-gray-700 dark:bg-gray-800">
-                {protagonistas.map((p) => {
-                  const lines = linesByProta.get(p.id) ?? [];
+                {personasOrdenadas.map((row) => {
+                  const lines = linesByKey.get(row.key) ?? [];
 
                   const pagadas = lines.filter((x) => x.pago);
                   const pendientes = lines.filter((x) => !x.pago);
@@ -239,10 +290,10 @@ export default async function VentasProtagonistasPage({
                   const totalPend = precio != null ? cantPendiente * precio : null;
 
                   return (
-                    <tr key={p.id} className="text-gray-700 dark:text-gray-300 align-top">
+                    <tr key={row.key} className="text-gray-700 dark:text-gray-300 align-top">
                       <td className="px-4 py-3">
-                        <div className="text-sm font-semibold">
-                          {p.apellido}, {p.nombre}
+                        <div className="flex items-center gap-2">
+                          <div className="text-sm font-semibold">{row.label}</div>
                         </div>
 
                         {(cantPagada > 0 || cantPendiente > 0) && (
@@ -259,14 +310,21 @@ export default async function VentasProtagonistasPage({
                         )}
                       </td>
 
-                      <td className="px-4 py-3 text-sm">{p.rama}</td>
+                      <td className="px-4 py-3 text-sm">{row.ramaLabel}</td>
 
                       {/* Agregar compra */}
                       <td className="px-4 py-3">
-                        <form action={createVentaProtagonistaLineAction} className="flex items-center gap-3">
+                        <form action={createVentaCompraLineAction} className="flex items-center gap-3">
                           <input type="hidden" name="venta_id" value={ventaId ?? ""} />
                           <input type="hidden" name="id_venta_detalle" value={selectedProductoId ?? ""} />
-                          <input type="hidden" name="id_protagonista" value={p.id} />
+                          <input type="hidden" name="comprador_tipo" value={row.kind} />
+
+                          {row.kind === "protagonista" && (
+                            <input type="hidden" name="id_protagonista" value={row.id_protagonista} />
+                          )}
+                          {row.kind === "educador" && (
+                            <input type="hidden" name="id_educador" value={row.id_educador} />
+                          )}
 
                           <input
                             name="cantidad"
@@ -292,7 +350,7 @@ export default async function VentasProtagonistasPage({
                         </form>
                       </td>
 
-                      {/* Compras (detalle) */}
+                      {/* Compras */}
                       <td className="px-4 py-3">
                         {lines.length === 0 ? (
                           <span className="text-sm text-gray-500 dark:text-gray-400">—</span>
@@ -314,10 +372,10 @@ export default async function VentasProtagonistasPage({
                                     </div>
 
                                     <div className="flex items-center gap-2">
-                                      {/* Toggle pago */}
-                                      <form action={setVentaProtagonistaPagoAction}>
+                                      <form action={setVentaCompraPagoAction}>
                                         <input type="hidden" name="venta_id" value={ventaId ?? ""} />
                                         <input type="hidden" name="id_venta_detalle" value={selectedProductoId ?? ""} />
+                                        <input type="hidden" name="comprador_tipo" value={row.kind} />
                                         <input type="hidden" name="line_id" value={ln.id} />
                                         <input type="hidden" name="pago" value={ln.pago ? "false" : "true"} />
 
@@ -333,11 +391,12 @@ export default async function VentasProtagonistasPage({
                                         </button>
                                       </form>
 
-                                      {/* Borrar */}
-                                      <form action={deleteVentaProtagonistaLineAction}>
+                                      <form action={deleteVentaCompraLineAction}>
                                         <input type="hidden" name="venta_id" value={ventaId ?? ""} />
                                         <input type="hidden" name="id_venta_detalle" value={selectedProductoId ?? ""} />
+                                        <input type="hidden" name="comprador_tipo" value={row.kind} />
                                         <input type="hidden" name="line_id" value={ln.id} />
+
                                         <button
                                           type="submit"
                                           className="text-xs px-2 py-1 rounded bg-red-50 text-red-700 hover:bg-red-100"
@@ -357,10 +416,10 @@ export default async function VentasProtagonistasPage({
                   );
                 })}
 
-                {protagonistas.length === 0 && (
+                {personas.length === 1 && (
                   <tr>
                     <td colSpan={4} className="px-4 py-6 text-sm text-gray-500 dark:text-gray-400">
-                      No hay protagonistas para esos filtros.
+                      No hay personas para esos filtros.
                     </td>
                   </tr>
                 )}
@@ -372,7 +431,7 @@ export default async function VentasProtagonistasPage({
             className="px-4 py-3 text-xs text-gray-500 uppercase border-t
                        dark:border-gray-700 bg-gray-50 dark:text-gray-400 dark:bg-gray-800"
           >
-            Total protagonistas: {protagonistas.length}
+            Total filas: {personas.length}
           </div>
         </div>
       </div>

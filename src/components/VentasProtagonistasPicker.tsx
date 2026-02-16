@@ -19,7 +19,7 @@ export default function VentasProtagonistasPicker({
   const router = useRouter();
   const sp = useSearchParams();
 
-  const base = "/admin/ventas-protagonistas";
+  const base = "/admin/ventas-compras";
 
   function push(venta: number | null, producto: number | null) {
     const params = new URLSearchParams();
