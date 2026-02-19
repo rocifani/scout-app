@@ -8,6 +8,7 @@ type VentaDetalle = {
   id: number;
   id_ventas_cabecera: number | null;
   nombre_producto: string | null;
+  precio: number | null;
   ganancia_individual: number | null;
 };
 
@@ -16,6 +17,7 @@ type Linea = {
   id_protagonista: number;
   id_venta_detalle: number;
   cantidad: number;
+  pago: boolean;
   created_at: string;
 };
 
@@ -27,6 +29,29 @@ function money(n: number | null) {
 function formatARDateTime(iso: string) {
   const d = new Date(iso);
   return d.toLocaleString("es-AR");
+}
+
+function EstadoPillVenta({ pagada, impaga }: { pagada: number; impaga: number }) {
+  const base = "px-2 py-1 rounded-full text-xs font-semibold";
+  if (impaga === 0) {
+    return (
+      <span className={`${base} bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-100`}>
+        Pagado
+      </span>
+    );
+  }
+  if (pagada === 0) {
+    return (
+      <span className={`${base} bg-red-100 text-red-800 dark:bg-red-700 dark:text-red-100`}>
+        Impago
+      </span>
+    );
+  }
+  return (
+    <span className={`${base} bg-yellow-100 text-yellow-800 dark:bg-yellow-700 dark:text-yellow-100`}>
+      Parcial
+    </span>
+  );
 }
 
 export default async function MisVentasPage() {
@@ -104,10 +129,11 @@ export default async function MisVentasPage() {
     return acc + (Number.isFinite(m) ? m : 0);
   }, 0);
 
-  // 4) líneas de ventas de SUS hijos
+  // 4) líneas de ventas de SUS hijos desde ventas_compras (incluye pago)
   const { data: linesRaw, error: lErr } = await supabase
-    .from("ventas_protagonistas")
-    .select("id, id_protagonista, id_venta_detalle, cantidad, created_at")
+    .from("ventas_compras")
+    .select("id, id_protagonista, id_venta_detalle, cantidad, pago, created_at")
+    .eq("comprador_tipo", "protagonista")
     .in("id_protagonista", protaIds)
     .order("created_at", { ascending: false });
 
@@ -118,11 +144,12 @@ export default async function MisVentasPage() {
     id_protagonista: Number(ln.id_protagonista),
     id_venta_detalle: Number(ln.id_venta_detalle),
     cantidad: Number(ln.cantidad),
+    pago: Boolean(ln.pago),
     created_at: String(ln.created_at),
   }));
 
+  // Si no hay ventas, igual mostramos transferencias + total
   if (lines.length === 0) {
-    // Si no hay ventas, igual mostramos transferencias + total
     const totalGeneralSinVentas = totalTransferencias;
 
     return (
@@ -140,11 +167,9 @@ export default async function MisVentasPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-5">
-              <div className="text-sm text-gray-600 dark:text-gray-300">Ganancia por ventas</div>
+              <div className="text-sm text-gray-600 dark:text-gray-300">Total ganancia</div>
               <div className="text-2xl font-extrabold text-gray-900 dark:text-gray-100">${money(0)}</div>
-              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Suma de ganancia individual (todos tus hijos)
-              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Ganancia total por ventas</div>
             </div>
 
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-5">
@@ -159,9 +184,7 @@ export default async function MisVentasPage() {
               <div className="text-3xl font-extrabold text-gray-900 dark:text-gray-100">
                 ${money(totalGeneralSinVentas)}
               </div>
-              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Ventas + transferencias (todos tus hijos)
-              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Ganancia + transferencias</div>
             </div>
           </div>
 
@@ -173,12 +196,12 @@ export default async function MisVentasPage() {
     );
   }
 
-  // 5) traer detalles (para ganancia_individual) + cabeceras (nombre_venta)
+  // 5) traer detalles (precio + ganancia_individual) + cabeceras (nombre_venta)
   const detalleIds = Array.from(new Set(lines.map((x) => x.id_venta_detalle)));
 
   const { data: detsRaw, error: dErr } = await supabase
     .from("ventas_detalle")
-    .select("id, id_ventas_cabecera, nombre_producto, ganancia_individual")
+    .select("id, id_ventas_cabecera, nombre_producto, precio, ganancia_individual")
     .in("id", detalleIds);
 
   if (dErr) return <div className="p-6 text-red-600">Error productos: {dErr.message}</div>;
@@ -187,6 +210,7 @@ export default async function MisVentasPage() {
     id: Number(d.id),
     id_ventas_cabecera: d.id_ventas_cabecera == null ? null : Number(d.id_ventas_cabecera),
     nombre_producto: d.nombre_producto ?? null,
+    precio: d.precio == null ? null : Number(d.precio),
     ganancia_individual: d.ganancia_individual == null ? null : Number(d.ganancia_individual),
   }));
 
@@ -208,36 +232,61 @@ export default async function MisVentasPage() {
   const detById = new Map<number, VentaDetalle>(dets.map((d) => [d.id, d]));
   const cabById = new Map<number, VentaCabecera>(cabs.map((c) => [c.id, c]));
 
-  // 6) armar resumen por venta y producto
+  // 6) armar resumen por venta y producto: Ganancia total + Total pagado/pendiente por precio
   type Row = {
     venta_id: number | null;
     venta_nombre: string;
     producto_id: number;
     producto_nombre: string;
-    cantidad: number;
-    ganancia_ind: number; // por unidad
-    total_ganancia: number;
-    last_at: string; // última fecha
+
+    cantidad_total: number;
+    cantidad_pagada: number;
+    cantidad_impaga: number;
+
+    precio_unit: number;
+
+    total_pagado: number; // $ pagado
+    total_pendiente: number; // $ pendiente
+
+    ganancia_ind: number; // $ por unidad
+    total_ganancia: number; // $ ganancia total (pago + impago)
+
+    last_at: string;
   };
 
   const agg = new Map<string, Row>();
+
   let totalGananciaVentas = 0;
+
+  // Totales globales por precio (para cards)
+  let totalPagadoVentas = 0;
+  let totalPendienteVentas = 0;
 
   for (const ln of lines) {
     const det = detById.get(ln.id_venta_detalle);
     if (!det) continue;
 
+    const precio = det.precio ?? 0;
     const gan = det.ganancia_individual ?? 0;
-    const total = ln.cantidad * gan;
+
+    const totalGan = ln.cantidad * gan;
+    totalGananciaVentas += totalGan;
+
+    const totalPagadoLinea = (ln.pago ? ln.cantidad : 0) * precio;
+    const totalPendienteLinea = (ln.pago ? 0 : ln.cantidad) * precio;
+
+    totalPagadoVentas += totalPagadoLinea;
+    totalPendienteVentas += totalPendienteLinea;
 
     const ventaId = det.id_ventas_cabecera ?? null;
     const ventaNombre = ventaId ? cabById.get(ventaId)?.nombre_venta ?? `Venta #${ventaId}` : "Venta";
     const prodNombre = det.nombre_producto ?? `Producto #${det.id}`;
 
-    totalGananciaVentas += total;
-
     const key = `${ventaId ?? "null"}::${det.id}`;
     const prev = agg.get(key);
+
+    const cantPagada = ln.pago ? ln.cantidad : 0;
+    const cantImpaga = ln.pago ? 0 : ln.cantidad;
 
     if (!prev) {
       agg.set(key, {
@@ -245,14 +294,31 @@ export default async function MisVentasPage() {
         venta_nombre: ventaNombre,
         producto_id: det.id,
         producto_nombre: prodNombre,
-        cantidad: ln.cantidad,
+
+        cantidad_total: ln.cantidad,
+        cantidad_pagada: cantPagada,
+        cantidad_impaga: cantImpaga,
+
+        precio_unit: precio,
+
+        total_pagado: totalPagadoLinea,
+        total_pendiente: totalPendienteLinea,
+
         ganancia_ind: gan,
-        total_ganancia: total,
+        total_ganancia: totalGan,
+
         last_at: ln.created_at,
       });
     } else {
-      prev.cantidad += ln.cantidad;
-      prev.total_ganancia += total;
+      prev.cantidad_total += ln.cantidad;
+      prev.cantidad_pagada += cantPagada;
+      prev.cantidad_impaga += cantImpaga;
+
+      prev.total_pagado += totalPagadoLinea;
+      prev.total_pendiente += totalPendienteLinea;
+
+      prev.total_ganancia += totalGan;
+
       if (new Date(ln.created_at) > new Date(prev.last_at)) prev.last_at = ln.created_at;
       agg.set(key, prev);
     }
@@ -282,13 +348,11 @@ export default async function MisVentasPage() {
         {/* TOTALES */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-5">
-            <div className="text-sm text-gray-600 dark:text-gray-300">Ganancia por ventas</div>
+            <div className="text-sm text-gray-600 dark:text-gray-300">Total ganancia</div>
             <div className="text-2xl font-extrabold text-gray-900 dark:text-gray-100">
               ${money(totalGananciaVentas)}
             </div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Suma de ganancia individual (todos tus hijos)
-            </div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Ganancia total por ventas</div>
           </div>
 
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-5">
@@ -296,21 +360,17 @@ export default async function MisVentasPage() {
             <div className="text-2xl font-extrabold text-gray-900 dark:text-gray-100">
               ${money(totalTransferencias)}
             </div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Pagos realizados por ustedes al fondo
-            </div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Pagos realizados por ustedes al fondo</div>
           </div>
 
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-5">
             <div className="text-sm text-gray-600 dark:text-gray-300">Total acumulado</div>
-            <div className="text-3xl font-extrabold text-gray-900 dark:text-gray-100">
-              ${money(totalGeneral)}
-            </div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Ventas + transferencias (todos tus hijos)
-            </div>
+            <div className="text-3xl font-extrabold text-gray-900 dark:text-gray-100">${money(totalGeneral)}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Ganancia + transferencias</div>
           </div>
         </div>
+
+
 
         {/* Tabla resumen */}
         <div className="w-full overflow-hidden rounded-lg shadow">
@@ -324,8 +384,11 @@ export default async function MisVentasPage() {
                   <th className="px-4 py-3">Venta</th>
                   <th className="px-4 py-3">Producto</th>
                   <th className="px-4 py-3">Cantidad</th>
-                  <th className="px-4 py-3">Ganancia ind.</th>
-                  <th className="px-4 py-3">Total ganancia</th>
+                  <th className="px-4 py-3">Estado</th>
+                  <th className="px-4 py-3">Precio unit.</th>
+                  <th className="px-4 py-3">Pagado</th>
+                  <th className="px-4 py-3">Pendiente de pago</th>
+                  <th className="px-4 py-3">Ganancia total</th>
                   <th className="px-4 py-3">Últ. carga</th>
                 </tr>
               </thead>
@@ -335,8 +398,13 @@ export default async function MisVentasPage() {
                   <tr key={`${r.venta_id ?? "null"}-${r.producto_id}`} className="text-gray-700 dark:text-gray-300">
                     <td className="px-4 py-3 font-semibold">{r.venta_nombre}</td>
                     <td className="px-4 py-3">{r.producto_nombre}</td>
-                    <td className="px-4 py-3">{r.cantidad}</td>
-                    <td className="px-4 py-3">${money(r.ganancia_ind)}</td>
+                    <td className="px-4 py-3">{r.cantidad_total}</td>
+                    <td className="px-4 py-3">
+                      <EstadoPillVenta pagada={r.cantidad_pagada} impaga={r.cantidad_impaga} />
+                    </td>
+                    <td className="px-4 py-3">${money(r.precio_unit)}</td>
+                    <td className="px-4 py-3 font-semibold">${money(r.total_pagado)}</td>
+                    <td className="px-4 py-3 font-semibold">${money(r.total_pendiente)}</td>
                     <td className="px-4 py-3 font-semibold">${money(r.total_ganancia)}</td>
                     <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400">
                       {formatARDateTime(r.last_at)}
@@ -346,7 +414,7 @@ export default async function MisVentasPage() {
 
                 {rows.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-4 py-6 text-sm text-gray-500 dark:text-gray-400">
+                    <td colSpan={9} className="px-4 py-6 text-sm text-gray-500 dark:text-gray-400">
                       No hay ventas para mostrar.
                     </td>
                   </tr>
@@ -362,7 +430,6 @@ export default async function MisVentasPage() {
             Items: {rows.length}
           </div>
         </div>
-       
       </div>
     </main>
   );

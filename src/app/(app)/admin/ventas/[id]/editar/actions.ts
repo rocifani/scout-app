@@ -138,7 +138,7 @@ export async function deleteVentaDetalleAction(formData: FormData) {
 
   // Bloquear si ya hay ventas_protagonistas asociadas
   const { count, error: cntErr } = await supabase
-    .from("ventas_protagonistas")
+    .from("ventas_compras")
     .select("id", { count: "exact", head: true })
     .eq("id_venta_detalle", id);
 
