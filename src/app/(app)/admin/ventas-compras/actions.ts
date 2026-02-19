@@ -1,3 +1,4 @@
+// ✅ Archivo: src/app/(app)/admin/ventas-compras/actions.ts
 "use server";
 
 import { redirect } from "next/navigation";
@@ -18,22 +19,24 @@ function toTipo(v: FormDataEntryValue | null): CompradorTipo {
   return "protagonista";
 }
 
-function back(ventaId: number | null, productoId: number | null, toast: string) {
+// ✅ ahora preserva producto="all" o producto="<id>"
+function back(ventaId: number | null, productoKey: string | null, toast: string) {
   const params = new URLSearchParams();
   if (ventaId) params.set("venta", String(ventaId));
-  if (productoId) params.set("producto", String(productoId));
+  if (productoKey) params.set("producto", productoKey);
   params.set("toast", toast);
   redirect(`/admin/ventas-compras?${params.toString()}`);
 }
 
 /* ================================
    CREAR COMPRA (SIEMPRE INSERT)
-   - ventas_compras
 ================================= */
 export async function createVentaCompraLineAction(formData: FormData) {
   const supabase = await createSupabaseServer();
 
   const ventaId = toInt(formData.get("venta_id"));
+  const productoKey = String(formData.get("producto") ?? "").trim() || null;
+
   const id_venta_detalle = toInt(formData.get("id_venta_detalle"));
   const tipo = toTipo(formData.get("comprador_tipo"));
 
@@ -43,11 +46,12 @@ export async function createVentaCompraLineAction(formData: FormData) {
   const cantidad = toInt(formData.get("cantidad"));
   const pago = String(formData.get("pago") ?? "") === "on";
 
-  if (!ventaId || !id_venta_detalle) back(ventaId, id_venta_detalle, "IDs inválidos");
-  if (!cantidad || cantidad <= 0) back(ventaId, id_venta_detalle, "La cantidad debe ser mayor a 0.");
+  if (!ventaId) back(null, productoKey, "Falta venta");
+  if (!id_venta_detalle) back(ventaId, productoKey, "Falta producto");
+  if (!cantidad || cantidad <= 0) back(ventaId, productoKey, "La cantidad debe ser mayor a 0.");
 
-  if (tipo === "protagonista" && !id_protagonista) back(ventaId, id_venta_detalle, "Falta protagonista");
-  if (tipo === "educador" && !id_educador) back(ventaId, id_venta_detalle, "Falta educador");
+  if (tipo === "protagonista" && !id_protagonista) back(ventaId, productoKey, "Falta protagonista");
+  if (tipo === "educador" && !id_educador) back(ventaId, productoKey, "Falta educador");
 
   const payload: any = {
     id_venta_detalle,
@@ -59,24 +63,25 @@ export async function createVentaCompraLineAction(formData: FormData) {
   };
 
   const { error } = await supabase.from("ventas_compras").insert(payload);
-  if (error) back(ventaId, id_venta_detalle, `Error creando: ${error.message}`);
+  if (error) back(ventaId, productoKey, `Error creando: ${error.message}`);
 
-  back(ventaId, id_venta_detalle, "Compra agregada");
+  back(ventaId, productoKey, "Compra agregada");
 }
 
 /* ================================
-   MARCAR PAGO (PARCIAL)
+   MARCAR PAGO (1 línea)
 ================================= */
 export async function setVentaCompraPagoAction(formData: FormData) {
   const supabase = await createSupabaseServer();
 
   const ventaId = toInt(formData.get("venta_id"));
-  const id_venta_detalle = toInt(formData.get("id_venta_detalle"));
+  const productoKey = String(formData.get("producto") ?? "").trim() || null;
+
   const lineId = toInt(formData.get("line_id"));
   const tipo = toTipo(formData.get("comprador_tipo"));
   const pago = String(formData.get("pago") ?? "") === "true";
 
-  if (!ventaId || !id_venta_detalle || !lineId) back(ventaId, id_venta_detalle, "IDs inválidos");
+  if (!ventaId || !lineId) back(ventaId, productoKey, "IDs inválidos");
 
   const { error } = await supabase
     .from("ventas_compras")
@@ -84,31 +89,79 @@ export async function setVentaCompraPagoAction(formData: FormData) {
     .eq("id", lineId)
     .eq("comprador_tipo", tipo);
 
-  if (error) back(ventaId, id_venta_detalle, `Error actualizando: ${error.message}`);
+  if (error) back(ventaId, productoKey, `Error actualizando: ${error.message}`);
 
-  back(ventaId, id_venta_detalle, pago ? "Compra marcada como pagada" : "Compra marcada como pendiente");
+  back(ventaId, productoKey, pago ? "Compra marcada como pagada" : "Compra marcada como pendiente");
 }
 
 /* ================================
-   BORRAR
+   BORRAR (1 línea)
 ================================= */
 export async function deleteVentaCompraLineAction(formData: FormData) {
   const supabase = await createSupabaseServer();
 
   const ventaId = toInt(formData.get("venta_id"));
-  const id_venta_detalle = toInt(formData.get("id_venta_detalle"));
+  const productoKey = String(formData.get("producto") ?? "").trim() || null;
+
   const lineId = toInt(formData.get("line_id"));
   const tipo = toTipo(formData.get("comprador_tipo"));
 
-  if (!ventaId || !id_venta_detalle || !lineId) back(ventaId, id_venta_detalle, "IDs inválidos");
+  if (!ventaId || !lineId) back(ventaId, productoKey, "IDs inválidos");
 
-  const { error } = await supabase
+  const { error } = await supabase.from("ventas_compras").delete().eq("id", lineId).eq("comprador_tipo", tipo);
+
+  if (error) back(ventaId, productoKey, `Error borrando: ${error.message}`);
+
+  back(ventaId, productoKey, "Compra eliminada");
+}
+
+/* ================================
+   ✅ OPCIÓN A: MARCAR TODA LA VENTA (por persona)
+================================= */
+export async function setVentaPagoAllForPersonaAction(formData: FormData) {
+  const supabase = await createSupabaseServer();
+
+  const ventaId = toInt(formData.get("venta_id"));
+  const productoKey = String(formData.get("producto") ?? "").trim() || null;
+
+  const tipo = toTipo(formData.get("comprador_tipo"));
+  const pago = String(formData.get("pago") ?? "") === "true";
+
+  const id_protagonista = toInt(formData.get("id_protagonista"));
+  const id_educador = toInt(formData.get("id_educador"));
+
+  if (!ventaId) back(null, productoKey, "Falta venta");
+
+  if (tipo === "protagonista" && !id_protagonista) back(ventaId, productoKey, "Falta protagonista");
+  if (tipo === "educador" && !id_educador) back(ventaId, productoKey, "Falta educador");
+
+  // 1) Traer todos los productos de la venta
+  const { data: dets, error: detErr } = await supabase
+    .from("ventas_detalle")
+    .select("id")
+    .eq("id_ventas_cabecera", ventaId);
+
+  if (detErr) back(ventaId, productoKey, `Error leyendo productos: ${detErr.message}`);
+
+  const ids = (dets ?? [])
+    .map((d: any) => Number(d.id))
+    .filter((x: number) => Number.isFinite(x) && x > 0);
+
+  if (ids.length === 0) back(ventaId, productoKey, "La venta no tiene productos.");
+
+  // 2) Update masivo en ventas_compras para esa persona y esa venta
+  let qy = supabase
     .from("ventas_compras")
-    .delete()
-    .eq("id", lineId)
-    .eq("comprador_tipo", tipo);
+    .update({ pago })
+    .eq("comprador_tipo", tipo)
+    .in("id_venta_detalle", ids);
 
-  if (error) back(ventaId, id_venta_detalle, `Error borrando: ${error.message}`);
+  if (tipo === "protagonista") qy = qy.eq("id_protagonista", id_protagonista);
+  if (tipo === "educador") qy = qy.eq("id_educador", id_educador);
+  // grupo: no filtra por id
 
-  back(ventaId, id_venta_detalle, "Compra eliminada");
+  const { error: upErr } = await qy;
+  if (upErr) back(ventaId, productoKey, `Error actualizando: ${upErr.message}`);
+
+  back(ventaId, productoKey, pago ? "Venta marcada como pagada (persona)" : "Venta marcada como pendiente (persona)");
 }

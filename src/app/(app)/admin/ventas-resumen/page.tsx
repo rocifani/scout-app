@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createSupabaseServerReadOnly } from "@/lib/supabase/server-readonly";
 
-type VentaCabecera = { id: number; nombre_venta: string | null };
+type VentaCabecera = { id: number; nombre_venta: string | null; created_at: string };
 
 type DetalleRow = {
   id: number;
@@ -15,6 +15,11 @@ function money(n: number | null) {
   return n.toLocaleString("es-AR", { maximumFractionDigits: 2 });
 }
 
+function formatARDateShort(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleDateString("es-AR");
+}
+
 export default async function VentasResumenPage({
   searchParams,
 }: {
@@ -25,10 +30,10 @@ export default async function VentasResumenPage({
 
   const supabase = await createSupabaseServerReadOnly();
 
-  // 1) Ventas para selector
+  // 1) Ventas para selector (✅ ahora trae created_at)
   const { data: ventas, error: vErr } = await supabase
     .from("ventas_cabecera")
-    .select("id, nombre_venta")
+    .select("id, nombre_venta, created_at")
     .order("created_at", { ascending: false });
 
   if (vErr) return <div className="p-6 text-red-600">Error ventas: {vErr.message}</div>;
@@ -72,9 +77,7 @@ export default async function VentasResumenPage({
     <main className="min-h-screen">
       <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-6xl">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-semibold text-gray-700 dark:text-gray-200">
-            Resumen de ventas
-          </h1>
+          <h1 className="text-2xl font-semibold text-gray-700 dark:text-gray-200">Resumen de ventas</h1>
         </div>
 
         {/* Selector */}
@@ -89,18 +92,20 @@ export default async function VentasResumenPage({
                            px-3 text-sm text-gray-900 dark:text-gray-100"
               >
                 <option value="">Seleccionar venta</option>
-                {ventasRows.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.nombre_venta ?? `Venta #${v.id}`}
-                  </option>
-                ))}
+                {ventasRows.map((v) => {
+                  const fecha = v.created_at ? formatARDateShort(v.created_at) : "—";
+                  const label = `${v.nombre_venta ?? `Venta #${v.id}`} · ${fecha}`;
+
+                  return (
+                    <option key={v.id} value={v.id}>
+                      {label}
+                    </option>
+                  );
+                })}
               </select>
             </div>
 
-            <button
-              type="submit"
-              className="h-10 px-4 rounded-lg bg-[#FCDB52] text-gray-900 font-semibold"
-            >
+            <button type="submit" className="h-10 px-4 rounded-lg bg-[#FCDB52] text-gray-900 font-semibold">
               Ver resumen
             </button>
 
@@ -110,13 +115,11 @@ export default async function VentasResumenPage({
                             border-gray-300 text-gray-700 bg-white hover:bg-gray-50
                             dark:border-gray-600 dark:text-gray-200 dark:bg-gray-900 dark:hover:bg-gray-700"
                 href={`/admin/ventas-resumen/export-xlsx?venta=${ventaId}`}
-                >
+              >
                 Descargar Excel
-                </Link>
+              </Link>
             )}
           </form>
-
-          
         </div>
 
         {!ventaId ? (
