@@ -7,7 +7,7 @@ export default function DashboardPage() {
 
       <div className="bg-yellow-100/90 text-gray-900 p-6 rounded-xl shadow-md">
         <h3 className="text-lg font-semibold mb-2">
-          ¡Bienvenid@ a la App del Grupo Scout Pablo Apóstol! 🌟
+          ¡Bienvenid@ a la Web del Grupo Scout Pablo Apóstol! 🌟
         </h3>
 
         <p className="mb-3">

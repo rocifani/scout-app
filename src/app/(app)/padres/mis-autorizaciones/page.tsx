@@ -128,7 +128,7 @@ export default async function MisAutorizacionesPage() {
           <div>
             <Link href="/" className="text-sm text-gray-600 hover:underline">← Volver</Link>
             <h1 className="text-2xl font-semibold text-gray-700 dark:text-gray-200 mt-2">
-              Detalle de autorizaciones ({anio})
+              Detalle de autorizaciones 
             </h1>
             <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
               {padre.apellido}, {padre.nombre} · {padre.email}
@@ -147,9 +147,6 @@ export default async function MisAutorizacionesPage() {
                   <th className="px-4 py-3 sticky left-0 bg-gray-50 dark:bg-gray-800 z-10">
                     Protagonista
                   </th>
-                  <th className="px-4 py-3">Rama</th>
-                  <th className="px-4 py-3">Activo</th>
-
                   {auts.map((a) => (
                     <th key={a.id} className="px-4 py-3">
                       {a.nombre_autorizacion}
@@ -170,11 +167,7 @@ export default async function MisAutorizacionesPage() {
                         </div>
                       </td>
 
-                      <td className="px-4 py-3">{p.rama}</td>
-
-                      <td className="px-4 py-3">
-                        <span className={pillClass(p.activo)}>{p.activo ? "Activo" : "Inactivo"}</span>
-                      </td>
+                      
 
                       {auts.map((a) => {
                         const r = row.get(a.id);

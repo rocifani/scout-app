@@ -172,8 +172,6 @@ export default async function MisCuotasPage() {
                   <th className="px-4 py-3 sticky left-0 bg-gray-50 dark:bg-gray-800 z-10">
                     Protagonista
                   </th>
-                  <th className="px-4 py-3">Rama</th>
-                  <th className="px-4 py-3">Activo</th>
                   <th className="px-4 py-3">Afiliación</th>
                   {MESES.map((m) => (
                     <th key={m.month} className="px-4 py-3">
@@ -194,14 +192,6 @@ export default async function MisCuotasPage() {
                         <div className="font-semibold">
                           {p.apellido}, {p.nombre}
                         </div>
-                      </td>
-
-                      <td className="px-4 py-3">{p.rama}</td>
-
-                      <td className="px-4 py-3">
-                        <span className={pillClass(p.activo)}>
-                          {p.activo ? "Activo" : "Inactivo"}
-                        </span>
                       </td>
 
                       <td className="px-4 py-3">
