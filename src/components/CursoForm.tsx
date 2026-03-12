@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import SubmitButton from "./SubmitButton";
 
 type Props = {
   title: string;
@@ -33,15 +34,11 @@ export default function CursoForm({ title, submitLabel, action, defaultValues }:
             Cancelar
           </Link>
 
-          <button
-            type="submit"
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg
-                       bg-[#FCDB52] text-gray-900
-                       hover:bg-[#F3D146] active:bg-[#E9C83D]
-                       focus:outline-none focus:ring-2 focus:ring-[#FCDB52]/40"
-          >
-            {submitLabel}
-          </button>
+          <SubmitButton
+  idleText={submitLabel}
+  loadingText="Guardando..."
+  className="text-sm bg-[#FCDB52] text-gray-900 hover:bg-[#F3D146] active:bg-[#E9C83D] focus:outline-none focus:ring-2 focus:ring-[#FCDB52]/40"
+/>
         </div>
       </form>
     </div>

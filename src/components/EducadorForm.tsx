@@ -1,5 +1,7 @@
 "use client";
 
+import SubmitButton from "./SubmitButton";
+
 type Props = {
   action: (formData: FormData) => void | Promise<void>;
   submitLabel: string;
@@ -155,17 +157,13 @@ export default function EducadorForm({
         )}
       </div>
 
-      <div className="flex justify-end">
-        <button
-          type="submit"
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg
-                     bg-[#FCDB52] text-gray-900
-                     hover:bg-[#F3D146] active:bg-[#E9C83D]
-                     focus:outline-none focus:ring-2 focus:ring-[#FCDB52]/40"
-        >
-          {submitLabel}
-        </button>
-      </div>
+     <div className="flex justify-end">
+  <SubmitButton
+    idleText={submitLabel}
+    loadingText={isEdit ? "Guardando..." : "Creando..."}
+    className="text-sm bg-[#FCDB52] text-gray-900 hover:bg-[#F3D146] active:bg-[#E9C83D] focus:outline-none focus:ring-2 focus:ring-[#FCDB52]/40"
+  />
+</div>
 
       {!isEdit && (
         <p className="text-xs text-gray-500">

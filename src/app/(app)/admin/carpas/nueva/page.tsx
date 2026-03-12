@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createCarpaAction } from "./actions";
+import SubmitButton from "@/components/SubmitButton";
 
 export default function NuevaCarpaPage() {
   return (
@@ -60,15 +61,11 @@ export default function NuevaCarpaPage() {
             </div>
 
             <div className="flex items-center gap-3 pt-2">
-              <button
-                type="submit"
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg
-                           bg-[#FCDB52] text-gray-900
-                           hover:bg-[#F3D146] active:bg-[#E9C83D]
-                           focus:outline-none focus:ring-2 focus:ring-[#FCDB52]/40"
-              >
-                Guardar
-              </button>
+              <SubmitButton
+                idleText="Guardar"
+                loadingText="Guardando..."
+                className="text-sm bg-[#FCDB52] text-gray-900 hover:bg-[#F3D146] active:bg-[#E9C83D] focus:outline-none focus:ring-2 focus:ring-[#FCDB52]/40"
+              />
 
               <Link
                 href="/admin/carpas"

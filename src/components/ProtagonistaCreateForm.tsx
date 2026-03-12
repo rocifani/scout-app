@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import SubmitButton from "./SubmitButton";
 
 const RAMAS = ["Lobatos y Lobeznas", "Scout", "Caminantes", "Rover"] as const;
 const RELACIONES = ["Papá", "Mamá", "Tutor"] as const;
@@ -189,9 +190,11 @@ export default function ProtagonistaCreateForm({ action }: Props) {
         <a href="/protagonistas" className="px-4 py-2 rounded-lg border">
           Cancelar
         </a>
-        <button type="submit" className="px-4 py-2 rounded-lg bg-[#FCDB52] text-gray-900 font-semibold">
-          Crear
-        </button>
+        <SubmitButton
+          idleText="Crear"
+          loadingText="Creando..."
+          className="bg-[#FCDB52] text-gray-900"
+        />
       </div>
     </form>
   );

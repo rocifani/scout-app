@@ -160,7 +160,7 @@ export default async function EditarVentaPage({
                 name="nombre_producto"
                 className="h-9 w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900
                            px-3 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#FCDB52]/40"
-                placeholder="Ej: Bono contribución"
+                placeholder="Ej: Muzzarella"
                 required
               />
             </div>

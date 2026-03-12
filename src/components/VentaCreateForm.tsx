@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import SubmitButton from "./SubmitButton";
 
 type DetalleDraft = {
   nombre_producto: string;
@@ -57,7 +58,7 @@ export default function VentaCreateForm({ action }: Props) {
           name="nombre_venta"
           className="h-10 w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900
                      px-3 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#FCDB52]/40"
-          placeholder="Ej: Rifa 2026"
+          placeholder="Ej: Pizzas"
         />
       </div>
 
@@ -123,7 +124,7 @@ export default function VentaCreateForm({ action }: Props) {
                       onChange={(e) => updateLinea(idx, { nombre_producto: e.target.value })}
                       className="h-9 w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900
                                  px-3 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#FCDB52]/40"
-                      placeholder="Ej: Bono contribución"
+                      placeholder="Ej: Muzzarella"
                     />
                   </div>
 
@@ -209,15 +210,11 @@ export default function VentaCreateForm({ action }: Props) {
       </div>
 
       <div className="flex items-center gap-3 pt-2">
-        <button
-          type="submit"
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg
-                     bg-[#FCDB52] text-gray-900
-                     hover:bg-[#F3D146] active:bg-[#E9C83D]
-                     focus:outline-none focus:ring-2 focus:ring-[#FCDB52]/40"
-        >
-          Crear venta
-        </button>
+        <SubmitButton
+          idleText="Crear venta"
+          loadingText="Creando venta..."
+          className="text-sm bg-[#FCDB52] text-gray-900 hover:bg-[#F3D146] active:bg-[#E9C83D] focus:outline-none focus:ring-2 focus:ring-[#FCDB52]/40"
+        />
 
         <a
           href="/admin/ventas"
