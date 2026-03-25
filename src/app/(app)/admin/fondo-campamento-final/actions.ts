@@ -26,7 +26,7 @@ export async function createFondoCampamentoAction(formData: FormData) {
 
   const monto = parseMoney(montoRaw);
 
-  if (!id_protagonista || monto === null || monto < 0) {
+  if (!id_protagonista || monto === null) {
     redirect(`/admin/fondo-campamento-final?toast=${encodeURIComponent("Datos inválidos")}`);
   }
 
