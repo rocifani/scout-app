@@ -126,17 +126,15 @@ export default async function AdminAutorizacionesProtagonistasPage({
 
         <div className="w-full overflow-hidden rounded-lg shadow">
           <div className="w-full overflow-x-auto">
-            <table className="min-w-312.5 w-full whitespace-nowrap text-sm">
+            <table className="min-w-312.5 w-full  text-sm">
               <thead>
                 <tr
                   className="text-xs font-semibold tracking-wide text-left text-gray-500 uppercase border-b
                              dark:border-gray-700 bg-gray-50 dark:text-gray-400 dark:bg-gray-800"
                 >
-                  <th className="px-4 py-3 sticky left-0 bg-gray-50 dark:bg-gray-800 z-10">
+                  <th className="px-2 py-3 w-40 sticky left-0 bg-gray-50 dark:bg-gray-800 z-10">
                     Protagonista
                   </th>
-                  <th className="px-4 py-3">Rama</th>
-                  <th className="px-4 py-3">Activo</th>
 
                   {auts.map((a) => (
                     <th key={a.id} className="px-4 py-3">
@@ -152,17 +150,12 @@ export default async function AdminAutorizacionesProtagonistasPage({
 
                   return (
                     <tr key={p.id} className="text-gray-700 dark:text-gray-300 align-top">
-                      <td className="px-4 py-3 sticky left-0 bg-white dark:bg-gray-800 z-10">
-                        <div className="font-semibold">
+                      <td className="px-2 py-3 w-40 sticky left-0 bg-white dark:bg-gray-800 z-10">
+                        <div className="font-semibold whitespace-normal wrap-break-word">
                           {p.apellido}, {p.nombre}
                         </div>
                       </td>
 
-                      <td className="px-4 py-3">{p.rama}</td>
-
-                      <td className="px-4 py-3">
-                        <span className={pillClass(p.activo)}>{p.activo ? "Activo" : "Inactivo"}</span>
-                      </td>
 
                       {auts.map((a) => {
                         const r = row.get(a.id);

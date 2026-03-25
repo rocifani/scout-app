@@ -336,7 +336,6 @@ export default async function VentasPage({
                              dark:border-gray-700 bg-gray-50 dark:text-gray-400 dark:bg-gray-800"
                 >
                   <th className="px-4 py-3">Persona</th>
-                  <th className="px-4 py-3">Rama</th>
                   <th className="px-4 py-3">Nueva compra</th>
                   <th className="px-4 py-3">Compras cargadas</th>
                 </tr>
@@ -436,7 +435,6 @@ export default async function VentasPage({
                         </div>
                       </td>
 
-                      <td className="px-4 py-3 text-sm">{row.ramaLabel}</td>
 
                       {/* Agregar compra: SOLO si hay producto seleccionado */}
                       <td className="px-4 py-3">
