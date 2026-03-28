@@ -10,6 +10,7 @@ type Props = {
   initialActivo?: string; // "", "true", "false"
   placeholder?: string;
   includeToastParam?: boolean;
+  showActivoFilter?: boolean;
 };
 
 const baseControl =
@@ -18,6 +19,8 @@ const baseControl =
   "dark:bg-gray-800 dark:text-gray-100 dark:border-gray-700 " +
   "placeholder:text-gray-400 dark:placeholder:text-gray-500";
 
+const SCROLL_KEY = "table-scroll-y";
+
 export default function TableFilters({
   ramas,
   initialQ = "",
@@ -25,6 +28,7 @@ export default function TableFilters({
   initialActivo = "",
   placeholder = "Buscar por nombre o apellido...",
   includeToastParam = false,
+  showActivoFilter = true,
 }: Props) {
   const router = useRouter();
   const pathname = usePathname();
@@ -32,15 +36,18 @@ export default function TableFilters({
 
   const [q, setQ] = useState(initialQ);
   const [rama, setRama] = useState(initialRama);
-  const [activo, setActivo] = useState(initialActivo);
+  const [activo, setActivo] = useState(showActivoFilter ? initialActivo : "");
 
-  const hasFilters = useMemo(() => !!q || !!rama || !!activo, [q, rama, activo]);
+  const hasFilters = useMemo(
+    () => !!q || !!rama || (showActivoFilter && !!activo),
+    [q, rama, activo, showActivoFilter]
+  );
 
   useEffect(() => {
     setQ(sp.get("q") ?? "");
     setRama(sp.get("rama") ?? "");
-    setActivo(sp.get("activo") ?? "");
-  }, [sp]);
+    setActivo(showActivoFilter ? sp.get("activo") ?? "" : "");
+  }, [sp, showActivoFilter]);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -53,18 +60,35 @@ export default function TableFilters({
       if (rama) params.set("rama", rama);
       else params.delete("rama");
 
-      if (activo) params.set("activo", activo);
+      if (showActivoFilter && activo) params.set("activo", activo);
       else params.delete("activo");
 
       const qs = params.toString();
-      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+      const nextUrl = qs ? `${pathname}?${qs}` : pathname;
+      const currentUrl = sp.toString() ? `${pathname}?${sp.toString()}` : pathname;
+
+      if (nextUrl !== currentUrl) {
+        sessionStorage.setItem(SCROLL_KEY, String(window.scrollY));
+        router.replace(nextUrl, { scroll: false });
+      }
     }, 350);
 
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, rama, activo]);
+  }, [q, rama, activo, showActivoFilter]);
+
+  useEffect(() => {
+    const saved = sessionStorage.getItem(SCROLL_KEY);
+    if (!saved) return;
+
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: Number(saved), behavior: "auto" });
+      sessionStorage.removeItem(SCROLL_KEY);
+    });
+  }, [sp]);
 
   function limpiar() {
+    sessionStorage.setItem(SCROLL_KEY, String(window.scrollY));
     setQ("");
     setRama("");
     setActivo("");
@@ -95,15 +119,17 @@ export default function TableFilters({
           ))}
         </select>
 
-        <select
-          value={activo}
-          onChange={(e) => setActivo(e.target.value)}
-          className={`${baseControl} sm:w-56`}
-        >
-          <option value="">Todos los estados</option>
-          <option value="true">Activos</option>
-          <option value="false">Inactivos</option>
-        </select>
+        {showActivoFilter && (
+          <select
+            value={activo}
+            onChange={(e) => setActivo(e.target.value)}
+            className={`${baseControl} sm:w-56`}
+          >
+            <option value="">Todos los estados</option>
+            <option value="true">Activos</option>
+            <option value="false">Inactivos</option>
+          </select>
+        )}
 
         {hasFilters && (
           <button

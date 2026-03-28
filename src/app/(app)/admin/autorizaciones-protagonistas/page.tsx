@@ -39,12 +39,11 @@ function pillClass(active: boolean) {
 export default async function AdminAutorizacionesProtagonistasPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ q?: string; rama?: string; activo?: string }>;
+  searchParams?: Promise<{ q?: string; rama?: string}>;
 }) {
   const sp = (await searchParams) ?? {};
   const q = (sp.q ?? "").trim();
   const rama = (sp.rama ?? "").trim();
-  const activo = (sp.activo ?? "").trim(); // "", "true", "false"
 
   const supabase = await createSupabaseServer();
   const anio = new Date().getFullYear();
@@ -68,8 +67,8 @@ export default async function AdminAutorizacionesProtagonistasPage({
     protasQuery = protasQuery.or(`nombre.ilike.%${safe}%,apellido.ilike.%${safe}%`);
   }
   if (rama) protasQuery = protasQuery.eq("rama", rama);
-  if (activo === "true") protasQuery = protasQuery.eq("activo", true);
-  if (activo === "false") protasQuery = protasQuery.eq("activo", false);
+
+  protasQuery = protasQuery.eq("activo", true);
 
   const { data: protas, error: protasErr } = await protasQuery;
 
@@ -115,7 +114,7 @@ export default async function AdminAutorizacionesProtagonistasPage({
           ramas={[...RAMAS]}
           initialQ={q}
           initialRama={rama}
-          initialActivo={activo}
+          showActivoFilter={false}
         />
 
         {(autErr || protasErr) && (
@@ -151,7 +150,7 @@ export default async function AdminAutorizacionesProtagonistasPage({
                   return (
                     <tr key={p.id} className="text-gray-700 dark:text-gray-300 align-top">
                       <td className="px-2 py-3 w-40 sticky left-0 bg-white dark:bg-gray-800 z-10">
-                        <div className="font-semibold whitespace-normal wrap-break-word">
+                        <div className="font-semibold whitespace-normal break-words">
                           {p.apellido}, {p.nombre}
                         </div>
                       </td>

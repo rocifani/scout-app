@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import ConfirmModal from "@/components/ConfirmModal";
 
 type CuotaRow = {
@@ -10,6 +11,8 @@ type CuotaRow = {
   fecha_pago: string | null;
   cuota_valor?: { valor: number } | null;
 };
+
+const SCROLL_KEY = "table-scroll-y";
 
 function estadoCuotaClass(pagado: boolean) {
   return pagado
@@ -28,50 +31,77 @@ export default function CuotaCellConfirm({
 }) {
   const [open, setOpen] = useState(false);
 
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   const pagarFormRef = useRef<HTMLFormElement | null>(null);
   const impagarFormRef = useRef<HTMLFormElement | null>(null);
 
-  if (!cuota) return <span className="text-xs text-gray-400 dark:text-gray-500">—</span>;
+  const returnTo = searchParams.toString()
+    ? `${pathname}?${searchParams.toString()}`
+    : pathname;
+
+  useEffect(() => {
+    const saved = sessionStorage.getItem(SCROLL_KEY);
+    if (!saved) return;
+
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: Number(saved), behavior: "auto" });
+      sessionStorage.removeItem(SCROLL_KEY);
+    });
+  }, []);
+
+  if (!cuota) {
+    return <span className="text-xs text-gray-400 dark:text-gray-500">—</span>;
+  }
 
   const valor = cuota.cuota_valor?.valor ?? null;
   const pagado = !!cuota.fecha_pago;
 
   const labelPeriodo = useMemo(() => {
-  if (cuota.tipo_pago === "afiliacion") return "Afiliación";
+    if (cuota.tipo_pago === "afiliacion") return "Afiliación";
 
-  const d = new Date(`${cuota.periodo}T00:00:00`);
+    const d = new Date(`${cuota.periodo}T00:00:00`);
 
-  // "mayo de 2026" -> "Mayo 2026"
-  const raw = d.toLocaleDateString("es-AR", { month: "long", year: "numeric" });
-  const normalized = raw.replace(/\s+de\s+/g, " "); // saca el "de"
-  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
-}, [cuota.periodo, cuota.tipo_pago]);
+    const raw = d.toLocaleDateString("es-AR", {
+      month: "long",
+      year: "numeric",
+    });
+    const normalized = raw.replace(/\s+de\s+/g, " ");
+    return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+  }, [cuota.periodo, cuota.tipo_pago]);
 
-
-  const prettyValor = valor !== null ? `$${Number(valor).toLocaleString("es-AR")}` : "$—";
+  const prettyValor =
+    valor !== null ? `$${Number(valor).toLocaleString("es-AR")}` : "$—";
 
   function abrirConfirmacion() {
     setOpen(true);
   }
 
   function confirmar() {
+    sessionStorage.setItem(SCROLL_KEY, String(window.scrollY));
+    setOpen(false);
+
     if (pagado) {
       impagarFormRef.current?.requestSubmit();
     } else {
       pagarFormRef.current?.requestSubmit();
     }
-    setOpen(false);
   }
 
   return (
     <div className="space-y-2 min-w-40">
       <div className="flex items-center justify-between gap-2">
         <div className="font-semibold">{prettyValor}</div>
-        <span className={estadoCuotaClass(pagado)}>{pagado ? "Pagado" : "Impago"}</span>
+        <span className={estadoCuotaClass(pagado)}>
+          {pagado ? "Pagado" : "Impago"}
+        </span>
       </div>
 
       <div className="text-xs text-gray-500 dark:text-gray-400">
-        {pagado ? `Fecha: ${new Date(cuota.fecha_pago!).toLocaleDateString("es-AR")}` : "—"}
+        {pagado
+          ? `Fecha: ${new Date(cuota.fecha_pago!).toLocaleDateString("es-AR")}`
+          : "—"}
       </div>
 
       <button
@@ -85,18 +115,23 @@ export default function CuotaCellConfirm({
         {pagado ? "Marcar impaga" : "Pagar"}
       </button>
 
-      {/* Forms ocultos */}
       <form ref={pagarFormRef} action={pagarAction} className="hidden">
         <input type="hidden" name="cuota_id" value={cuota.id} />
+        <input type="hidden" name="returnTo" value={returnTo} />
       </form>
 
       <form ref={impagarFormRef} action={impagarAction} className="hidden">
         <input type="hidden" name="cuota_id" value={cuota.id} />
+        <input type="hidden" name="returnTo" value={returnTo} />
       </form>
 
       <ConfirmModal
         open={open}
-        title={pagado ? "Estás seguro que querés marcar impaga?" : "Estás seguro que querés registrar el pago?"}
+        title={
+          pagado
+            ? "Estás seguro que querés marcar impaga?"
+            : "Estás seguro que querés registrar el pago?"
+        }
         description={
           <>
             <p className="text-sm">

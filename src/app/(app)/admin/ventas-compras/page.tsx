@@ -1,8 +1,8 @@
-// ✅ Archivo: src/app/(app)/admin/ventas-compras/page.tsx
 import Link from "next/link";
 import { createSupabaseServerReadOnly } from "@/lib/supabase/server-readonly";
 import VentasProtagonistasPicker from "@/components/VentasProtagonistasPicker";
 import TableFilters from "@/components/TableFilters";
+import ScrollPreservingForm from "@/components/ScrollPreservingForm";
 import {
   createVentaCompraLineAction,
   deleteVentaCompraLineAction,
@@ -25,7 +25,7 @@ type VentaDetalle = {
 
 type Linea = {
   id: number;
-  id_venta_detalle: number; // ✅ necesario para modo "all"
+  id_venta_detalle: number;
   comprador_tipo: "protagonista" | "educador" | "grupo";
   id_protagonista: number | null;
   id_educador: number | null;
@@ -61,7 +61,7 @@ export default async function VentasPage({
   searchParams?: Promise<{
     toast?: string;
     venta?: string;
-    producto?: string; // "all" | "<id>"
+    producto?: string;
     q?: string;
     rama?: string;
   }>;
@@ -71,16 +71,22 @@ export default async function VentasPage({
 
   const ventaId = sp.venta ? Number(sp.venta) : null;
 
-  const productoParam = (sp.producto ?? "").trim(); // "" | "all" | "123"
+  const productoParam = (sp.producto ?? "").trim();
   const mode: "all" | "one" = productoParam === "all" ? "all" : "one";
   const productoId = mode === "one" ? toIntOrNull(productoParam || null) : null;
 
   const q = (sp.q ?? "").trim();
   const rama = (sp.rama ?? "").trim();
 
+  const currentParams = new URLSearchParams();
+  if (sp.venta) currentParams.set("venta", sp.venta);
+  if (sp.producto) currentParams.set("producto", sp.producto);
+  if (sp.q) currentParams.set("q", sp.q);
+  if (sp.rama) currentParams.set("rama", sp.rama);
+  const returnTo = `/admin/ventas-compras${currentParams.toString() ? `?${currentParams.toString()}` : ""}`;
+
   const supabase = await createSupabaseServerReadOnly();
 
-  // 1) Ventas
   const { data: ventas, error: vErr } = await supabase
     .from("ventas_cabecera")
     .select("id, nombre_venta")
@@ -89,7 +95,6 @@ export default async function VentasPage({
   if (vErr) return <div className="p-6 text-red-600">Error ventas: {vErr.message}</div>;
   const ventasRows = (ventas ?? []) as VentaCabecera[];
 
-  // 2) Productos
   let productosRows: VentaDetalle[] = [];
   if (ventaId) {
     const { data: dets, error: dErr } = await supabase
@@ -102,21 +107,18 @@ export default async function VentasPage({
     productosRows = (dets ?? []) as VentaDetalle[];
   }
 
-  // ✅ default: si hay venta y no vino producto => "all"
   const selectedProductoKey: "all" | string | null = (() => {
     if (!ventaId) return null;
     if (!productoParam) return "all";
-    return productoParam === "all" ? "all" : productoParam; // id string
+    return productoParam === "all" ? "all" : productoParam;
   })();
 
-  // en modo "one", si no hay id válido, usamos el primero (si existe)
   const selectedProductoId =
     mode === "one" ? (productoId ?? (productosRows[0]?.id ?? null)) : null;
 
   const selectedProducto =
     selectedProductoId ? productosRows.find((p) => p.id === selectedProductoId) ?? null : null;
 
-  // Map precios/nombres por producto (para modo all)
   const prodInfoById = new Map<number, { nombre: string; precio: number | null }>();
   productosRows.forEach((p) => {
     prodInfoById.set(p.id, {
@@ -125,11 +127,9 @@ export default async function VentasPage({
     });
   });
 
-  // 3) Personas (Grupo + Educadores + Protagonistas) con filtros
   const personas: PersonaRow[] = [];
   personas.push({ kind: "grupo", key: "g:0", label: "Grupo Scout (interno)", ramaLabel: "—" });
 
-  // Educadores activos
   {
     let qy = supabase.from("educadores").select("id, nombre, apellido, rama, activo").eq("activo", true);
 
@@ -154,7 +154,6 @@ export default async function VentasPage({
     });
   }
 
-  // Protagonistas activos
   {
     let qy = supabase.from("protagonistas").select("id, nombre, apellido, rama, activo").eq("activo", true);
 
@@ -184,7 +183,6 @@ export default async function VentasPage({
   resto.sort((a, b) => a.label.localeCompare(b.label, "es", { sensitivity: "base" }));
   const personasOrdenadas = [...grupo, ...resto];
 
-  // 4) Líneas: modo producto => filtra por producto; modo all => trae todo de la venta
   const linesByKey = new Map<string, Linea[]>();
 
   if (ventaId && productosRows.length > 0) {
@@ -262,14 +260,15 @@ export default async function VentasPage({
     <main className="min-h-screen">
       <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-6xl">
         {toast && (
-          <div className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-green-800">{toast}</div>
+          <div className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-green-800">
+            {toast}
+          </div>
         )}
 
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-semibold text-gray-700 dark:text-gray-200">Ventas</h1>
         </div>
 
-        {/* Picker */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-5 mb-4">
           <VentasProtagonistasPicker
             ventas={ventasRows.map((v) => ({ id: v.id, nombre_venta: v.nombre_venta }))}
@@ -316,17 +315,15 @@ export default async function VentasPage({
           )}
         </div>
 
-        {/* Filtros */}
         <TableFilters
           ramas={[...RAMAS]}
           initialQ={q}
           initialRama={rama}
-          initialActivo=""
           includeToastParam={false}
           placeholder="Buscar protagonista o educador..."
+          showActivoFilter={false}
         />
 
-        {/* Tabla */}
         <div className="w-full overflow-hidden rounded-lg shadow">
           <div className="w-full overflow-x-auto">
             <table className="w-full whitespace-nowrap">
@@ -389,9 +386,9 @@ export default async function VentasPage({
                           </div>
                         )}
 
-                        {/* ✅ Bulk por venta/persona (siempre disponible con venta elegida) */}
                         <div className="mt-3 flex flex-wrap gap-2">
-                          <form action={setVentaPagoAllForPersonaAction}>
+                          <ScrollPreservingForm action={setVentaPagoAllForPersonaAction}>
+                            <input type="hidden" name="returnTo" value={returnTo} />
                             <input type="hidden" name="venta_id" value={ventaId ?? ""} />
                             <input type="hidden" name="producto" value={selectedProductoKey ?? ""} />
                             <input type="hidden" name="comprador_tipo" value={row.kind} />
@@ -410,9 +407,10 @@ export default async function VentasPage({
                             >
                               Marcar TODO pagado
                             </button>
-                          </form>
+                          </ScrollPreservingForm>
 
-                          <form action={setVentaPagoAllForPersonaAction}>
+                          <ScrollPreservingForm action={setVentaPagoAllForPersonaAction}>
+                            <input type="hidden" name="returnTo" value={returnTo} />
                             <input type="hidden" name="venta_id" value={ventaId ?? ""} />
                             <input type="hidden" name="producto" value={selectedProductoKey ?? ""} />
                             <input type="hidden" name="comprador_tipo" value={row.kind} />
@@ -431,14 +429,13 @@ export default async function VentasPage({
                             >
                               Marcar TODO pendiente
                             </button>
-                          </form>
+                          </ScrollPreservingForm>
                         </div>
                       </td>
 
-
-                      {/* Agregar compra: SOLO si hay producto seleccionado */}
                       <td className="px-4 py-3">
-                        <form action={createVentaCompraLineAction} className="flex items-center gap-3">
+                        <ScrollPreservingForm action={createVentaCompraLineAction} className="flex items-center gap-3">
+                          <input type="hidden" name="returnTo" value={returnTo} />
                           <input type="hidden" name="venta_id" value={ventaId ?? ""} />
                           <input type="hidden" name="producto" value={selectedProductoKey ?? ""} />
                           <input type="hidden" name="id_venta_detalle" value={selectedProductoId ?? ""} />
@@ -481,10 +478,9 @@ export default async function VentasPage({
                           >
                             Agregar
                           </button>
-                        </form>
+                        </ScrollPreservingForm>
                       </td>
 
-                      {/* Compras */}
                       <td className="px-4 py-3">
                         {lines.length === 0 ? (
                           <span className="text-sm text-gray-500 dark:text-gray-400">—</span>
@@ -494,7 +490,6 @@ export default async function VentasPage({
                               const info = prodInfoById.get(ln.id_venta_detalle);
                               const precioLinea = mode === "one" ? precioSel : info?.precio ?? null;
                               const nombreLinea = mode === "one" ? null : info?.nombre ?? `Producto #${ln.id_venta_detalle}`;
-
                               const lineTotal = precioLinea != null ? ln.cantidad * precioLinea : null;
 
                               return (
@@ -515,10 +510,10 @@ export default async function VentasPage({
                                     </div>
 
                                     <div className="flex items-center gap-2">
-                                      <form action={setVentaCompraPagoAction}>
+                                      <ScrollPreservingForm action={setVentaCompraPagoAction}>
+                                        <input type="hidden" name="returnTo" value={returnTo} />
                                         <input type="hidden" name="venta_id" value={ventaId ?? ""} />
                                         <input type="hidden" name="producto" value={selectedProductoKey ?? ""} />
-                                        {/* En modo all, este id_venta_detalle es el del producto de la línea */}
                                         <input type="hidden" name="id_venta_detalle" value={ln.id_venta_detalle} />
                                         <input type="hidden" name="comprador_tipo" value={row.kind} />
                                         <input type="hidden" name="line_id" value={ln.id} />
@@ -535,9 +530,10 @@ export default async function VentasPage({
                                         >
                                           {ln.pago ? "Marcar pendiente" : "Marcar pagado"}
                                         </button>
-                                      </form>
+                                      </ScrollPreservingForm>
 
-                                      <form action={deleteVentaCompraLineAction}>
+                                      <ScrollPreservingForm action={deleteVentaCompraLineAction}>
+                                        <input type="hidden" name="returnTo" value={returnTo} />
                                         <input type="hidden" name="venta_id" value={ventaId ?? ""} />
                                         <input type="hidden" name="producto" value={selectedProductoKey ?? ""} />
                                         <input type="hidden" name="id_venta_detalle" value={ln.id_venta_detalle} />
@@ -551,7 +547,7 @@ export default async function VentasPage({
                                         >
                                           Borrar
                                         </button>
-                                      </form>
+                                      </ScrollPreservingForm>
                                     </div>
                                   </div>
                                 </div>
@@ -566,7 +562,7 @@ export default async function VentasPage({
 
                 {personas.length === 1 && (
                   <tr>
-                    <td colSpan={4} className="px-4 py-6 text-sm text-gray-500 dark:text-gray-400">
+                    <td colSpan={3} className="px-4 py-6 text-sm text-gray-500 dark:text-gray-400">
                       No hay personas para esos filtros.
                     </td>
                   </tr>

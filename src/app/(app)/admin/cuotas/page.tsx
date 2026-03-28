@@ -57,7 +57,6 @@ export default async function AdminCuotasPage({
   const sp = (await searchParams) ?? {};
   const q = (sp.q ?? "").trim();
   const rama = (sp.rama ?? "").trim();
-  const activo = (sp.activo ?? "").trim();
 
   const supabase = await createSupabaseServer();
   const year = new Date().getFullYear();
@@ -65,20 +64,19 @@ export default async function AdminCuotasPage({
   const from = periodoISO(year, 4);
   const to = periodoISO(year, 12);
 
-  // ✅ Protagonistas con filtros (como en protagonistas)
-  let protasQuery = supabase
-    .from("protagonistas")
-    .select("id,nombre,apellido,rama,activo");
+let protasQuery = supabase
+  .from("protagonistas")
+  .select("id,nombre,apellido,rama,activo");
 
-  if (q) {
-    const safe = q.replace(/%/g, "\\%").replace(/_/g, "\\_");
-    protasQuery = protasQuery.or(`nombre.ilike.%${safe}%,apellido.ilike.%${safe}%`);
-  }
+if (q) {
+  const safe = q.replace(/%/g, "\\%").replace(/_/g, "\\_");
+  protasQuery = protasQuery.or(`nombre.ilike.%${safe}%,apellido.ilike.%${safe}%`);
+}
 
-  if (rama) protasQuery = protasQuery.eq("rama", rama);
+if (rama) protasQuery = protasQuery.eq("rama", rama);
 
-  if (activo === "true") protasQuery = protasQuery.eq("activo", true);
-  if (activo === "false") protasQuery = protasQuery.eq("activo", false);
+protasQuery = protasQuery.eq("activo", true);
+
 
   const { data: protas, error: protasErr } = await protasQuery
     .order("apellido", { ascending: true })
@@ -128,7 +126,7 @@ export default async function AdminCuotasPage({
           ramas={[...RAMAS]}
           initialQ={q}
           initialRama={rama}
-          initialActivo={activo}
+          showActivoFilter={false}
         />
 
         {(protasErr || cuotasErr) && (

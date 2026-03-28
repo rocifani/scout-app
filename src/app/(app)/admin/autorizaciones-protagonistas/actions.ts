@@ -3,10 +3,14 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServer } from "@/lib/supabase/server";
 
+const DEFAULT_RETURN_TO = "/admin/autorizaciones-protagonistas";
+
 export async function marcarAutorizacionEntregadaAction(formData: FormData) {
   const supabase = await createSupabaseServer();
 
   const id = Number(formData.get("id"));
+  const returnTo = String(formData.get("returnTo") || DEFAULT_RETURN_TO);
+
   if (!id) throw new Error("ID inválido.");
 
   const { error } = await supabase
@@ -16,13 +20,15 @@ export async function marcarAutorizacionEntregadaAction(formData: FormData) {
 
   if (error) throw new Error(error.message);
 
-  redirect("/admin/autorizaciones-protagonistas");
+  redirect(returnTo);
 }
 
 export async function marcarAutorizacionNoEntregadaAction(formData: FormData) {
   const supabase = await createSupabaseServer();
 
   const id = Number(formData.get("id"));
+  const returnTo = String(formData.get("returnTo") || DEFAULT_RETURN_TO);
+
   if (!id) throw new Error("ID inválido.");
 
   const { error } = await supabase
@@ -32,5 +38,5 @@ export async function marcarAutorizacionNoEntregadaAction(formData: FormData) {
 
   if (error) throw new Error(error.message);
 
-  redirect("/admin/autorizaciones-protagonistas");
+  redirect(returnTo);
 }
