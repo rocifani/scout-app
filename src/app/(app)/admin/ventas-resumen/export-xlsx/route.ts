@@ -24,6 +24,12 @@ type ProtagonistaRow = {
   apellido: string;
 };
 
+type EducadorRow = {
+  id: number;
+  nombre: string;
+  apellido: string;
+};
+
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const ventaId = Number(url.searchParams.get("venta") ?? "");
@@ -128,7 +134,16 @@ export async function GET(req: Request) {
       )
     );
 
+    const educadorIds = Array.from(
+      new Set(
+        compras
+          .filter((c) => c.comprador_tipo === "educador" && c.id_educador != null)
+          .map((c) => Number(c.id_educador))
+      )
+    );
+
     const protagonistasById = new Map<number, string>();
+    const educadoresById = new Map<number, string>();
 
     if (protagonistaIds.length > 0) {
       const { data: protasData, error: protasErr } = await supabase
@@ -145,8 +160,23 @@ export async function GET(req: Request) {
       });
     }
 
+    if (educadorIds.length > 0) {
+      const { data: educadoresData, error: educadoresErr } = await supabase
+        .from("educadores")
+        .select("id, nombre, apellido")
+        .in("id", educadorIds);
+
+      if (educadoresErr) {
+        return NextResponse.json({ error: educadoresErr.message }, { status: 500 });
+      }
+
+      ((educadoresData ?? []) as EducadorRow[]).forEach((e) => {
+        educadoresById.set(e.id, `${e.apellido}, ${e.nombre}`);
+      });
+    }
+
     const agg = new Map<
-      number,
+      string,
       {
         nombre: string;
         cantidadesPorProducto: Record<number, number>;
@@ -156,16 +186,30 @@ export async function GET(req: Request) {
     >();
 
     for (const c of compras) {
-      if (c.comprador_tipo !== "protagonista" || c.id_protagonista == null) continue;
+      let key = "";
+      let nombre = "";
 
-      const pid = Number(c.id_protagonista);
-      const nombre = protagonistasById.get(pid) ?? `Protagonista #${pid}`;
+      if (c.comprador_tipo === "protagonista" && c.id_protagonista != null) {
+        const pid = Number(c.id_protagonista);
+        key = `protagonista-${pid}`;
+        nombre = protagonistasById.get(pid) ?? `Protagonista #${pid}`;
+      } else if (c.comprador_tipo === "educador" && c.id_educador != null) {
+        const eid = Number(c.id_educador);
+        key = `educador-${eid}`;
+        nombre = educadoresById.get(eid) ?? `Educador #${eid}`;
+      } else if (c.comprador_tipo === "grupo") {
+        key = "grupo";
+        nombre = "Grupo";
+      } else {
+        continue;
+      }
+
       const precio = preciosByDetalle.get(c.id_venta_detalle)?.precio ?? 0;
       const cantidad = Number(c.cantidad ?? 0);
       const importe = cantidad * Number(precio ?? 0);
 
-      if (!agg.has(pid)) {
-        agg.set(pid, {
+      if (!agg.has(key)) {
+        agg.set(key, {
           nombre,
           cantidadesPorProducto: {},
           totalCantidad: 0,
@@ -173,7 +217,7 @@ export async function GET(req: Request) {
         });
       }
 
-      const row = agg.get(pid)!;
+      const row = agg.get(key)!;
       row.cantidadesPorProducto[c.id_venta_detalle] =
         (row.cantidadesPorProducto[c.id_venta_detalle] ?? 0) + cantidad;
       row.totalCantidad += cantidad;
@@ -185,7 +229,7 @@ export async function GET(req: Request) {
     );
 
     sheet.columns = [
-      { header: "Protagonista", key: "protagonista", width: 35 },
+      { header: "Comprador", key: "comprador", width: 35 },
       ...detalles.map((d) => ({
         header: d.nombre_producto ?? `Producto #${d.id}`,
         key: `prod_${d.id}`,
@@ -199,7 +243,7 @@ export async function GET(req: Request) {
 
     for (const r of rows) {
       const rowData: Record<string, string | number> = {
-        protagonista: r.nombre,
+        comprador: r.nombre,
         totalCantidad: r.totalCantidad,
         totalImporte: r.totalImporte,
       };
@@ -214,7 +258,7 @@ export async function GET(req: Request) {
 
     sheet.addRow({});
     const totalRow = sheet.addRow({
-      protagonista: "TOTAL GENERAL",
+      comprador: "TOTAL GENERAL",
       totalImporte: totalVenta,
     });
 

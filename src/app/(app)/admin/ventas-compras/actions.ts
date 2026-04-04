@@ -19,10 +19,12 @@ function toTipo(v: FormDataEntryValue | null): CompradorTipo {
 }
 
 function back(returnTo: string | null, toast: string) {
-  const safeReturnTo =
-    returnTo && returnTo.startsWith("/admin/ventas-compras")
-      ? returnTo
-      : "/admin/ventas-compras";
+  const allowed =
+    returnTo &&
+    (returnTo.startsWith("/admin/ventas-compras") ||
+      returnTo.startsWith("/admin/ventas-resumen"));
+
+  const safeReturnTo = allowed ? returnTo : "/admin/ventas-resumen";
 
   const url = new URL(safeReturnTo, "http://localhost");
   url.searchParams.set("toast", toast);
@@ -147,12 +149,13 @@ export async function setVentaPagoAllForPersonaAction(formData: FormData) {
 
   if (tipo === "protagonista") qy = qy.eq("id_protagonista", id_protagonista);
   if (tipo === "educador") qy = qy.eq("id_educador", id_educador);
+  // grupo: no necesita id extra
 
   const { error: upErr } = await qy;
   if (upErr) back(returnTo, `Error actualizando: ${upErr.message}`);
 
   back(
     returnTo,
-    pago ? "Venta marcada como pagada (persona)" : "Venta marcada como pendiente (persona)"
+    pago ? "Venta marcada como pagada (comprador)" : "Venta marcada como pendiente (comprador)"
   );
 }

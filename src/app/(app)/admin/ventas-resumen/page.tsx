@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { createSupabaseServerReadOnly } from "@/lib/supabase/server-readonly";
+import InlinePagoAllCheckbox from "@/components/InlinePagoAllCheckbox";
+import { setVentaPagoAllForPersonaAction } from "../ventas-compras/actions";
 
 type VentaCabecera = { id: number; nombre_venta: string | null; created_at: string };
 
@@ -20,6 +22,12 @@ type CompraRow = {
 };
 
 type ProtagonistaRow = {
+  id: number;
+  nombre: string;
+  apellido: string;
+};
+
+type EducadorRow = {
   id: number;
   nombre: string;
   apellido: string;
@@ -67,12 +75,16 @@ export default async function VentasResumenPage({
     totalBruto: number | null;
   }[] = [];
 
-  let resumenProtagonista: {
+  let resumenComprador: {
     key: string;
     nombre: string;
+    compradorTipo: "protagonista" | "educador" | "grupo";
+    idProtagonista: number | null;
+    idEducador: number | null;
     cantidadesPorProducto: Record<number, number>;
     totalCantidad: number;
     totalImporte: number;
+    allPaid: boolean;
   }[] = [];
 
   let totalVenta = 0;
@@ -145,7 +157,16 @@ export default async function VentasResumenPage({
       )
     );
 
+    const educadorIds = Array.from(
+      new Set(
+        compras
+          .filter((c) => c.comprador_tipo === "educador" && c.id_educador != null)
+          .map((c) => Number(c.id_educador))
+      )
+    );
+
     const protagonistasById = new Map<number, string>();
+    const educadoresById = new Map<number, string>();
 
     if (protagonistaIds.length > 0) {
       const { data: protasData, error: protasErr } = await supabase
@@ -162,52 +183,103 @@ export default async function VentasResumenPage({
       });
     }
 
-    const comprasProtagonistas = compras.filter(
-      (c) => c.comprador_tipo === "protagonista" && c.id_protagonista != null
-    );
+    if (educadorIds.length > 0) {
+      const { data: educadoresData, error: educadoresErr } = await supabase
+        .from("educadores")
+        .select("id, nombre, apellido")
+        .in("id", educadorIds);
+
+      if (educadoresErr) {
+        return <div className="p-6 text-red-600">Error educadores: {educadoresErr.message}</div>;
+      }
+
+      ((educadoresData ?? []) as EducadorRow[]).forEach((e) => {
+        educadoresById.set(e.id, `${e.apellido}, ${e.nombre}`);
+      });
+    }
 
     const agg = new Map<
-      number,
+      string,
       {
         nombre: string;
+        compradorTipo: "protagonista" | "educador" | "grupo";
+        idProtagonista: number | null;
+        idEducador: number | null;
         cantidadesPorProducto: Record<number, number>;
         totalCantidad: number;
         totalImporte: number;
+        hasAny: boolean;
+        allPaid: boolean;
       }
     >();
 
-    for (const c of comprasProtagonistas) {
-      const pid = Number(c.id_protagonista);
-      const nombre = protagonistasById.get(pid) ?? `Protagonista #${pid}`;
+    for (const c of compras) {
+      let key = "";
+      let nombre = "";
+      let compradorTipo: "protagonista" | "educador" | "grupo";
+      let idProtagonista: number | null = null;
+      let idEducador: number | null = null;
+
+      if (c.comprador_tipo === "protagonista" && c.id_protagonista != null) {
+        const pid = Number(c.id_protagonista);
+        key = `protagonista-${pid}`;
+        nombre = protagonistasById.get(pid) ?? `Protagonista #${pid}`;
+        compradorTipo = "protagonista";
+        idProtagonista = pid;
+      } else if (c.comprador_tipo === "educador" && c.id_educador != null) {
+        const eid = Number(c.id_educador);
+        key = `educador-${eid}`;
+        nombre = educadoresById.get(eid) ?? `Educador #${eid}`;
+        compradorTipo = "educador";
+        idEducador = eid;
+      } else if (c.comprador_tipo === "grupo") {
+        key = "grupo";
+        nombre = "Grupo";
+        compradorTipo = "grupo";
+      } else {
+        continue;
+      }
+
       const precio = preciosByDetalle.get(c.id_venta_detalle)?.precio ?? 0;
       const cantidad = Number(c.cantidad ?? 0);
       const importe = cantidad * Number(precio ?? 0);
 
-      if (!agg.has(pid)) {
-        agg.set(pid, {
+      if (!agg.has(key)) {
+        agg.set(key, {
           nombre,
+          compradorTipo,
+          idProtagonista,
+          idEducador,
           cantidadesPorProducto: {},
           totalCantidad: 0,
           totalImporte: 0,
+          hasAny: false,
+          allPaid: true,
         });
       }
 
-      const row = agg.get(pid)!;
+      const row = agg.get(key)!;
 
       row.cantidadesPorProducto[c.id_venta_detalle] =
         (row.cantidadesPorProducto[c.id_venta_detalle] ?? 0) + cantidad;
 
       row.totalCantidad += cantidad;
       row.totalImporte += importe;
+      row.hasAny = true;
+      row.allPaid = row.allPaid && Boolean(c.pago);
     }
 
-    resumenProtagonista = Array.from(agg.entries())
-      .map(([pid, row]) => ({
-        key: String(pid),
+    resumenComprador = Array.from(agg.entries())
+      .map(([key, row]) => ({
+        key,
         nombre: row.nombre,
+        compradorTipo: row.compradorTipo,
+        idProtagonista: row.idProtagonista,
+        idEducador: row.idEducador,
         cantidadesPorProducto: row.cantidadesPorProducto,
         totalCantidad: row.totalCantidad,
         totalImporte: row.totalImporte,
+        allPaid: row.hasAny ? row.allPaid : false,
       }))
       .sort((a, b) => a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" }));
   }
@@ -286,7 +358,7 @@ export default async function VentasResumenPage({
                     : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-200 dark:border-gray-700"
                 }`}
               >
-                Ver por protagonista
+                Ver por comprador
               </Link>
             </div>
           )}
@@ -347,7 +419,7 @@ export default async function VentasResumenPage({
               <table className="w-full whitespace-nowrap">
                 <thead>
                   <tr className="text-xs font-semibold tracking-wide text-left text-gray-500 uppercase border-b dark:border-gray-700 bg-gray-50 dark:text-gray-400 dark:bg-gray-800">
-                    <th className="px-4 py-3">Protagonista</th>
+                    <th className="px-4 py-3">Comprador</th>
                     {detalles.map((d) => (
                       <th key={d.id} className="px-4 py-3">
                         {d.nombre_producto ?? `Producto #${d.id}`}
@@ -355,11 +427,12 @@ export default async function VentasResumenPage({
                     ))}
                     <th className="px-4 py-3">Total cant.</th>
                     <th className="px-4 py-3">Total $</th>
+                    <th className="px-4 py-3 text-center">Pago total</th>
                   </tr>
                 </thead>
 
                 <tbody className="bg-white divide-y dark:divide-gray-700 dark:bg-gray-800">
-                  {resumenProtagonista.map((r) => (
+                  {resumenComprador.map((r) => (
                     <tr key={r.key} className="text-gray-700 dark:text-gray-300">
                       <td className="px-4 py-3 font-semibold">{r.nombre}</td>
 
@@ -371,16 +444,27 @@ export default async function VentasResumenPage({
 
                       <td className="px-4 py-3 font-semibold">{r.totalCantidad}</td>
                       <td className="px-4 py-3 font-semibold">{money(r.totalImporte)}</td>
+                      <td className="px-4 py-3 text-center">
+                        <InlinePagoAllCheckbox
+                          action={setVentaPagoAllForPersonaAction}
+                          ventaId={ventaId}
+                          compradorTipo={r.compradorTipo}
+                          idProtagonista={r.idProtagonista}
+                          idEducador={r.idEducador}
+                          checked={r.allPaid}
+                          returnTo={`/admin/ventas-resumen?venta=${ventaId}&vista=protagonista`}
+                        />
+                      </td>
                     </tr>
                   ))}
 
-                  {resumenProtagonista.length === 0 && (
+                  {resumenComprador.length === 0 && (
                     <tr>
                       <td
-                        colSpan={1 + detalles.length + 2}
+                        colSpan={1 + detalles.length + 3}
                         className="px-4 py-6 text-sm text-gray-500 dark:text-gray-400"
                       >
-                        Esta venta no tiene compras cargadas para protagonistas.
+                        Esta venta no tiene compras cargadas.
                       </td>
                     </tr>
                   )}
