@@ -159,3 +159,51 @@ export async function setVentaPagoAllForPersonaAction(formData: FormData) {
     pago ? "Venta marcada como pagada (comprador)" : "Venta marcada como pendiente (comprador)"
   );
 }
+
+export async function setVentaRetiroAllForPersonaAction(formData: FormData) {
+  const supabase = await createSupabaseServer();
+
+  const returnTo = String(formData.get("returnTo") ?? "").trim() || null;
+  const ventaId = toInt(formData.get("venta_id"));
+
+  const tipo = toTipo(formData.get("comprador_tipo"));
+  const retiro = String(formData.get("retiro") ?? "") === "true"; // 👈
+
+  const id_protagonista = toInt(formData.get("id_protagonista"));
+  const id_educador = toInt(formData.get("id_educador"));
+
+  if (!ventaId) back(returnTo, "Falta venta");
+
+  if (tipo === "protagonista" && !id_protagonista) back(returnTo, "Falta protagonista");
+  if (tipo === "educador" && !id_educador) back(returnTo, "Falta educador");
+
+  const { data: dets, error: detErr } = await supabase
+    .from("ventas_detalle")
+    .select("id")
+    .eq("id_ventas_cabecera", ventaId);
+
+  if (detErr) back(returnTo, `Error leyendo productos: ${detErr.message}`);
+
+  const ids = (dets ?? [])
+    .map((d: any) => Number(d.id))
+    .filter((x: number) => Number.isFinite(x) && x > 0);
+
+  if (ids.length === 0) back(returnTo, "La venta no tiene productos.");
+
+  let qy = supabase
+    .from("ventas_compras")
+    .update({ retiro }) // 👈
+    .eq("comprador_tipo", tipo)
+    .in("id_venta_detalle", ids);
+
+  if (tipo === "protagonista") qy = qy.eq("id_protagonista", id_protagonista);
+  if (tipo === "educador") qy = qy.eq("id_educador", id_educador);
+
+  const { error: upErr } = await qy;
+  if (upErr) back(returnTo, `Error actualizando: ${upErr.message}`);
+
+  back(
+    returnTo,
+    retiro ? "Retiro marcado (comprador)" : "Retiro desmarcado (comprador)"
+  );
+}

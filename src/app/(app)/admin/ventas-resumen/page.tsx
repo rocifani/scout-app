@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { createSupabaseServerReadOnly } from "@/lib/supabase/server-readonly";
 import InlinePagoAllCheckbox from "@/components/InlinePagoAllCheckbox";
-import { setVentaPagoAllForPersonaAction } from "../ventas-compras/actions";
+import InlineRetiroAllCheckbox from "@/components/InlineRetiroAllCheckbox";
+import { setVentaPagoAllForPersonaAction, setVentaRetiroAllForPersonaAction } from "../ventas-compras/actions";
 
 type VentaCabecera = { id: number; nombre_venta: string | null; created_at: string };
 
@@ -20,6 +21,7 @@ type CompraRow = {
   id_educador: number | null;
   cantidad: number;
   pago: boolean;
+  retiro: boolean;
 };
 
 type ProtagonistaRow = {
@@ -88,6 +90,7 @@ export default async function VentasResumenPage({
     totalCantidad: number;
     totalImporte: number;
     allPaid: boolean;
+    allRetired: boolean;
   }[] = [];
 
   let totalVenta = 0;
@@ -118,7 +121,7 @@ export default async function VentasResumenPage({
     if (detalleIds.length > 0) {
       const { data: comprasData, error: comprasErr } = await supabase
         .from("ventas_compras")
-        .select("id, id_venta_detalle, comprador_tipo, id_protagonista, id_educador, cantidad, pago")
+        .select("id, id_venta_detalle, comprador_tipo, id_protagonista, id_educador, cantidad, pago, retiro")
         .in("id_venta_detalle", detalleIds);
 
       if (comprasErr) {
@@ -217,6 +220,7 @@ export default async function VentasResumenPage({
         totalImporte: number;
         hasAny: boolean;
         allPaid: boolean;
+        allRetired: boolean;
       }
     >();
 
@@ -262,6 +266,7 @@ export default async function VentasResumenPage({
           totalImporte: 0,
           hasAny: false,
           allPaid: true,
+          allRetired: true,
         });
       }
 
@@ -274,6 +279,7 @@ export default async function VentasResumenPage({
       row.totalImporte += importe;
       row.hasAny = true;
       row.allPaid = row.allPaid && Boolean(c.pago);
+      row.allRetired = row.allRetired && Boolean(c.retiro);
     }
 
     resumenComprador = Array.from(agg.entries())
@@ -287,6 +293,7 @@ export default async function VentasResumenPage({
         totalCantidad: row.totalCantidad,
         totalImporte: row.totalImporte,
         allPaid: row.hasAny ? row.allPaid : false,
+        allRetired: row.hasAny ? row.allRetired : false,
       }))
       .sort((a, b) => a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" }));
   }
@@ -409,7 +416,7 @@ export default async function VentasResumenPage({
                   {resumenProducto.length === 0 && (
                     <tr>
                       <td
-                        colSpan={6}
+                        colSpan={8}
                         className="px-4 py-6 text-sm text-gray-500 dark:text-gray-400"
                       >
                         Esta venta no tiene productos o no hay compras cargadas.
@@ -442,6 +449,7 @@ export default async function VentasResumenPage({
                     <th className="px-4 py-3">Total cant.</th>
                     <th className="px-4 py-3">Total $</th>
                     <th className="px-4 py-3 text-center">Pago total</th>
+                    <th className="px-4 py-3 text-center">Retiro total</th>
                   </tr>
                 </thead>
 
@@ -469,13 +477,24 @@ export default async function VentasResumenPage({
                           returnTo={`/admin/ventas-resumen?venta=${ventaId}&vista=protagonista`}
                         />
                       </td>
+                      <td className="px-4 py-3 text-center">
+                        <InlineRetiroAllCheckbox
+                          action={setVentaRetiroAllForPersonaAction}
+                          ventaId={ventaId}
+                          compradorTipo={r.compradorTipo}
+                          idProtagonista={r.idProtagonista}
+                          idEducador={r.idEducador}
+                          checked={r.allRetired}
+                          returnTo={`/admin/ventas-resumen?venta=${ventaId}&vista=protagonista`}
+                        />
+                      </td>
                     </tr>
                   ))}
 
                   {resumenComprador.length === 0 && (
                     <tr>
                       <td
-                        colSpan={1 + detalles.length + 3}
+                        colSpan={1 + detalles.length + 4}
                         className="px-4 py-6 text-sm text-gray-500 dark:text-gray-400"
                       >
                         Esta venta no tiene compras cargadas.
