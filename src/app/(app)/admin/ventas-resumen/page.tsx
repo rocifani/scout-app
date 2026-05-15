@@ -440,7 +440,7 @@ export default async function VentasResumenPage({
               <table className="w-full whitespace-nowrap">
                 <thead>
                   <tr className="text-xs font-semibold tracking-wide text-left text-gray-500 uppercase border-b dark:border-gray-700 bg-gray-50 dark:text-gray-400 dark:bg-gray-800">
-                    <th className="px-4 py-3">Comprador</th>
+                    <th className="px-4 py-3 sticky left-0 z-10 bg-gray-50 dark:bg-gray-800">Comprador</th>
                     {detalles.map((d) => (
                       <th key={d.id} className="px-4 py-3">
                         {d.nombre_producto ?? `Producto #${d.id}`}
@@ -456,7 +456,9 @@ export default async function VentasResumenPage({
                 <tbody className="bg-white divide-y dark:divide-gray-700 dark:bg-gray-800">
                   {resumenComprador.map((r) => (
                     <tr key={r.key} className="text-gray-700 dark:text-gray-300">
-                      <td className="px-4 py-3 font-semibold">{r.nombre}</td>
+                      <td className="px-4 py-3 font-semibold sticky left-0 z-10 bg-white dark:bg-gray-800">
+                        {r.nombre}
+                      </td>
 
                       {detalles.map((d) => (
                         <td key={d.id} className="px-4 py-3 text-center">
