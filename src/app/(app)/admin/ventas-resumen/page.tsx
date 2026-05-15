@@ -9,6 +9,7 @@ type DetalleRow = {
   id: number;
   nombre_producto: string | null;
   precio: number | null;
+  costo: number | null;
 };
 
 type CompraRow = {
@@ -69,10 +70,12 @@ export default async function VentasResumenPage({
     id: number;
     producto: string;
     precio: number | null;
+    costo: number | null;
     qtyTotal: number;
     qtyPagada: number;
     qtyPend: number;
     totalBruto: number | null;
+    totalCosto: number | null;
   }[] = [];
 
   let resumenComprador: {
@@ -92,7 +95,7 @@ export default async function VentasResumenPage({
   if (ventaId) {
     const { data: detallesData, error: detallesErr } = await supabase
       .from("ventas_detalle")
-      .select("id, nombre_producto, precio")
+      .select("id, nombre_producto, precio,costo")
       .eq("id_ventas_cabecera", ventaId)
       .order("created_at", { ascending: true });
 
@@ -136,6 +139,8 @@ export default async function VentasResumenPage({
 
       const totalBruto = d.precio != null ? qtyTotal * d.precio : null;
 
+      const totalCosto = d.costo != null ? qtyTotal * d.costo : null;
+
       return {
         id: d.id,
         producto: d.nombre_producto ?? `Producto #${d.id}`,
@@ -144,6 +149,8 @@ export default async function VentasResumenPage({
         qtyPagada,
         qtyPend,
         totalBruto,
+        costo: d.costo,
+        totalCosto,
       };
     });
 
@@ -379,7 +386,9 @@ export default async function VentasResumenPage({
                     <th className="px-4 py-3">Pagado</th>
                     <th className="px-4 py-3">Pendiente</th>
                     <th className="px-4 py-3">Precio</th>
-                    <th className="px-4 py-3">Total</th>
+                    <th className="px-4 py-3">Total venta</th>
+                    <th className="px-4 py-3">Costo</th>
+                    <th className="px-4 py-3">Total costo</th>
                   </tr>
                 </thead>
 
@@ -392,6 +401,8 @@ export default async function VentasResumenPage({
                       <td className="px-4 py-3">{r.qtyPend}</td>
                       <td className="px-4 py-3">{money(r.precio)}</td>
                       <td className="px-4 py-3">{money(r.totalBruto)}</td>
+                      <td className="px-4 py-3">{money(r.costo)}</td>
+                      <td className="px-4 py-3">{money(r.totalCosto)}</td>
                     </tr>
                   ))}
 
@@ -410,7 +421,10 @@ export default async function VentasResumenPage({
             </div>
 
             <div className="px-4 py-3 text-xs text-gray-500 uppercase border-t dark:border-gray-700 bg-gray-50 dark:text-gray-400 dark:bg-gray-800">
-              Total estimado venta: {money(totalVenta)}
+              Total estimado venta: {money(totalVenta)} | Total estimado costo:{" "}
+              {money(
+                resumenProducto.reduce((acc, r) => acc + (r.totalCosto ?? 0), 0)
+              )}
             </div>
           </div>
         ) : (
